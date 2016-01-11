@@ -19,6 +19,38 @@ namespace LADoc;
 class Builder
 {
     /**
+     * Tags list.
+     *
+     * @protected
+     * @property  tags
+     * @type      array
+    */
+    protected $tags =
+    [
+        'license'     => 1,
+        'version'     => 1,
+        'source'      => 1,
+        'link'        => 1,
+        'copyright'   => 1,
+        'author'      => 1,
+        'namespace'   => 1,
+        'class'       => 1,
+        'public'      => 0,
+        'protected'   => 0,
+        'private'     => 0,
+        'static'      => 0,
+        'constructor' => 0,
+        'property'    => 1,
+        'type'        => 1,
+        'method'      => 1,
+        'param'       => 3,
+        'return'      => 2,
+        'use'         => 1,
+        'extend'      => 1,
+        'throw'       => 1
+    ];
+
+    /**
      * Main configuration.
      *
      * @protected
@@ -30,7 +62,8 @@ class Builder
         'input'    => '.',
         'output'   => './docs',
         'includes' => '*.php, *.md',
-        'excludes' => 'docs, .git'
+        'excludes' => 'docs, .git',
+        'tags'     => []
     ];
 
     /**
@@ -109,6 +142,88 @@ class Builder
     }
 
     /**
+     * Parse a DocBlock tag string.
+     *
+     * @protected
+     * @method parseDocBlockTag
+     * @param  string $tag
+     * @return array
+     */
+    protected function parseDocBlockTag($tag)
+    {
+        $result        = [];
+        $tag           = substr($tag, 1);
+        $firstSpacePos = strpos($tag, ' ');
+
+        if (! $firstSpacePos)
+        {
+            return ['type' => 'tag', 'name' => $tag];
+        }
+
+        $tag    = preg_replace('|[ ]++|', ' ', $tag);
+        $name   = substr($tag, 0, $firstSpacePos);
+        $value  = substr($tag, $firstSpacePos + 1);
+        $limit  = isset($this->tags[$name]) ? $this->tags[$name] : 2;
+        $params = array_pad(explode(' ', $value, $limit), $limit, null);
+
+        return ['type' => 'tag', 'name' => $name, 'params' => $params];
+    }
+
+    /**
+     * Parse a DocBlock.
+     *
+     * @protected
+     * @method parseDocBlock
+     * @param  array $docBlock
+     * @return array
+     */
+    protected function parseDocBlock($docBlock)
+    {
+        $result = [];
+        $text   = '';
+
+        foreach ($docBlock as $line)
+        {
+            if ($line === '' or $line[0] !== '@')
+            {
+                $text .= "$line\n";
+            }
+            else
+            {
+                if (strlen($text))
+                {
+                    $result[] = ['type' => 'text', 'data' => $text];
+                    $text = '';
+                }
+
+                $result[] = $this->parseDocBlockTag($line);
+            }
+        }
+
+        return $result;
+    }
+
+    /**
+     * Parse extracted DocBlocks.
+     *
+     * @protected
+     * @method parseDocBlocks
+     * @param  array $docBlocks
+     * @return array
+     */
+    protected function parseDocBlocks($docBlocks)
+    {
+        $result = [];
+
+        foreach ($docBlocks as $docBlock)
+        {
+            $result = array_merge($result, $this->parseDocBlock($docBlock));
+        }
+
+        return $result;
+    }
+
+    /**
      * Parse the files tree.
      *
      * @protected
@@ -120,8 +235,9 @@ class Builder
         {
             $contents  = Helper::getFileContents($path);
             $docBlocks = $this->extractDocBlocks($contents);
+            $docBlocks = $this->parseDocBlocks($docBlocks);
 
-            var_dump([$path, $docBlocks]);
+            var_dump($docBlocks);
         }
     }
 
