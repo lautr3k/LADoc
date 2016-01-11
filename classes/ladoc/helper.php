@@ -46,14 +46,10 @@ class Helper
      */
     public static function absolutePath($path, $strict = true)
     {
-        // If the path exist
         if (file_exists($path))
         {
-            // Get the absolute path
             $path = realpath($path);
         }
-
-        // If the path does not exist and strict mode
         else
         {
             if ($strict)
@@ -62,26 +58,119 @@ class Helper
             }
         }
 
-        // Return a normalized path
         return self::normalizePath($path);
     }
 
     /**
-     * Return a flat files three (recursive).
+     * Match filename against almost one pattern.
+     *
+     * @static
+     * @method pathMatch
+     * @param  string $path
+     * @param  string|array $patterns Shell pattern or array of shell patterns.
+     * @return boolean
+     */
+    public static function pathMatch($path, $patterns)
+    {
+        foreach ((array) $patterns as $pattern)
+        {
+            if (fnmatch($pattern, $path))
+            {
+                return true;
+            }
+        }
+
+        return false;
+    }
+
+    /**
+     * Return a flat files three (recursive) matching shell patterns.
      *
      * @static
      * @method scanPath
      * @param  string $path
-     * @param  string $pattern
+     * @param  string|array [$includes='*']  Shell pattern or array of shell patterns to include in returned array.
+     * @param  string|array [$excludes=null] Shell pattern or array of shell patterns to exclude from returned array.
      * @return array
      */
-    public static function scanPath($path)
+    public static function scanPath($path, $includes = '*', $excludes = null)
     {
-        // Files list
-        $paths = [];
+        $result = [];
 
+        foreach(scandir($path, SCANDIR_SORT_NONE) as $file)
+        {
+            if (in_array($file, array('.', '..')))
+            {
+                continue;
+            }
 
+            if (self::pathMatch($file, $excludes))
+            {
+                continue;
+            }
 
-        return $paths;
+            $absolutePath = $path . '/' . $file;
+
+            if (is_dir($absolutePath))
+            {
+                $files  = self::scanPath($absolutePath, $includes, $excludes);
+                $result = array_merge($result, $files);
+            }
+            else if (self::pathMatch($file, $includes))
+            {
+                 $result[] = $absolutePath;
+            }
+
+        }
+
+        return $result;
+    }
+
+    /**
+     * Normalize file content.
+     *
+     * - CRLF normalization.
+     * - Trim witespaces.
+     * - Tabs to spaces.
+     *
+     * @static
+     * @method normalizeFileContents
+     * @param  string $contents
+     * @return string
+     */
+    public static function normalizeFileContents($contents)
+    {
+        // Normalize CRLF to UNIX style
+        $contents = str_replace("\r\n", "\n", $contents);
+
+        // Normalize TABS with four spaces
+        $contents = str_replace("\t", "    ", $contents);
+
+        // Trim witespaces
+        $contents = trim($contents);
+
+        // Return the file content
+        return $contents;
+    }
+
+    /**
+     * Get the file content normalized.
+     *
+     * - CRLF normalization.
+     * - Trim witespaces.
+     * - Tabs to spaces.
+     *
+     * @static
+     * @method getFileContents
+     * @param  string $path
+     * @return string
+     */
+    public static function getFileContents($path)
+    {
+        // Get the file content
+        $contents = file_get_contents($path);
+
+        // Return the normalized file content
+        return self::normalizeFileContents($contents);
     }
 }
