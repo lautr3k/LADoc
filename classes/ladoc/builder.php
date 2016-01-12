@@ -175,54 +175,55 @@ class Builder
      *
      * @protected
      * @method parseDocBlockTag
-     * @param  string $tag
+     * @param  string
      * @return string
+     * @test hahaha hohoho
      */
     protected function parseDocBlockTag($tag, $file, $num)
     {
-        $parts = array_filter(explode(' ', $tag));
-        $name  = substr(array_shift($parts), 1);
-
-        $params = $parts;
+        $args = array_filter(explode(' ', $tag));
+        $name = substr(array_shift($args), 1);
+        $tag  = ['name' => $name, 'args' => $args];
 
         if (! array_key_exists($name, $this->tags))
         {
             $this->warning('Unsupported tag: @%s [%s:%s]', [$name, $file, $num]);
-            continue;
+            return false;
         }
-        else if ($this->tags[$name] === null)
+
+        if ($this->tags[$name] === null)
         {
-            $params = true;
+            $args = $name;
         }
         else
         {
+            $lastTagName = '';
+
             foreach ($this->tags[$name] as $key => $tagName)
             {
-                $optional = strpos($tagName, '?') === 0;
-
-                if ($optional)
+                if (strpos($tagName, '?') === 0)
                 {
-                    $tagName = substr($tagName, 1);
+                    $args[$lastTagName] += ' ' + implode(' ', $args);
+                    break;
                 }
-
-                if (! isset($params[$key]))
+                else if (! isset($args[$key]))
                 {
-                    if (! $optional)
-                    {
-                        $args = [$name, implode('', $params), $tagName, $file, $num];
-                        $this->warning('Missed argument: @%s %s -> %s <- [%s:%s]', $args);
-                        continue;
-                    }
+                    $args = [$name, implode('', $args), $tagName, $file, $num];
+                    $this->warning('Missed argument: @%s %s -> %s <- [%s:%s]', $args);
+                    return false;
                 }
                 else
                 {
-                    $params[$tagName] = $params[$key];
-                    unset($params[$key]);
+                    $lastTagName    = $tagName;
+                    $args[$tagName] = $args[$key];
+                    unset($args[$key]);
                 }
             }
         }
 
-        return ['name' => $name, 'params' => $params];
+        $tag['args'] = $args;
+
+        return $tag;
     }
 
     /**
@@ -249,7 +250,7 @@ class Builder
         {
             $line = trim($line);
 
-            if (! $inDocBlock and strpos($line, '/*') === 0)
+            if (! $inDocBlock and ($line == '/**' or $line == '/*'))
             {
                 $inDocBlock = true;
                 $docBlock   =
@@ -262,7 +263,7 @@ class Builder
                     'tags' => [],
                 ];
             }
-            else if ($inDocBlock and strpos($line, '*/') === 0)
+            else if ($inDocBlock and $line == '*/')
             {
                 $inDocBlock = false;
 
@@ -285,6 +286,11 @@ class Builder
                 {
                     $tag = $this->parseDocBlockTag($line, $file, $num);
 
+                    if (! $tag)
+                    {
+                        continue;
+                    }
+
                     if (in_array($tag['name'], $this->primaryTags))
                     {
                         $docBlock['type'] = $tag['name'];
@@ -292,11 +298,11 @@ class Builder
 
                     if (in_array($tag['name'], $this->multipleTags))
                     {
-                        $docBlock['tags'][$tag['name']][] = $tag['params'];
+                        $docBlock['tags'][$tag['name']][] = $tag['args'];
                     }
                     else
                     {
-                        $docBlock['tags'][$tag['name']] = $tag['params'];
+                        $docBlock['tags'][$tag['name']] = $tag['args'];
                     }
                 }
             }
@@ -327,6 +333,7 @@ class Builder
 
         $docBlocks = array_map(array($this, 'parseFile'), $this->filesTree);
 
+        var_dump($this->warnings);
         var_dump($docBlocks);
     }
 }
