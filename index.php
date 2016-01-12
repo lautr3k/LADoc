@@ -27,6 +27,9 @@ spl_autoload_register(function($class_name)
 
 try
 {
+    // Start buffer
+    ob_start();
+
     // Create the project builder instance
     $builder = new Builder();
 
@@ -47,5 +50,7 @@ catch (\Exception $e)
     $output .= "<b>Line    :</b> $line\n";
     $output .= "</pre></body></html>";
 
+    ob_clean();
+    
     echo $output;
 }

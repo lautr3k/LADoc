@@ -43,6 +43,15 @@ class Builder
     protected $filesTree = [];
 
     /**
+     * Warnings collection.
+     *
+     * @protected
+     * @property warnings
+     * @type     array
+    */
+    protected $warnings = [];
+
+    /**
      * Tags list.
      *
      * - Indexed by tag name.
@@ -60,17 +69,17 @@ class Builder
         'copyright'   => ['text'],
         'extend'      => ['text'],
         'license'     => ['text'],
-        'link'        => ['url', 'text?'],
+        'link'        => ['url', '?text'],
         'method'      => ['text'],
         'namespace'   => ['text'],
-        'param'       => ['type', 'name', 'text?'],
+        'param'       => ['type', 'name', '?text'],
         'private'     => null,
         'property'    => ['text'],
         'protected'   => null,
         'public'      => null,
-        'return'      => ['type', 'text?'],
-        'source'      => ['url', 'text?'],
-        'throw'       => ['type', 'text?'],
+        'return'      => ['type', '?text'],
+        'source'      => ['url', '?text'],
+        'throw'       => ['type', '?text'],
         'static'      => null,
         'type'        => ['text'],
         'use'         => ['text'],
@@ -128,9 +137,9 @@ class Builder
      * Class constructor.
      *
      * @constructor
-     * @param string test
-     * @param string test
-     * @param string test
+     * @param string $test Test 1
+     * @param string $test Test 2
+     * @param string $test
      */
     public function __construct()
     {
@@ -149,30 +158,71 @@ class Builder
     }
 
     /**
+     * Add an new warning message.
+     *
+     * @protected
+     * @method warning
+     * @param string $message
+     * @param array  [$args]
+     */
+    protected function warning($message, $args = array())
+    {
+        $this->warnings[] = empty($args) ? $message : vsprintf($message, $args);
+    }
+
+    /**
      * Parse a DocBlock tag string.
      *
      * @protected
      * @method parseDocBlockTag
      * @param  string $tag
-     * @return array
+     * @return string
      */
-    protected function parseDocBlockTag($tag)
+    protected function parseDocBlockTag($tag, $file, $num)
     {
-        $pattern = "^@(?P<name>[a-z]+)";
+        $parts = array_filter(explode(' ', $tag));
+        $name  = substr(array_shift($parts), 1);
 
-        preg_match("/$pattern/", $tag, $matches);
+        $params = $parts;
 
-        $matches = array_unique($matches);
+        if (! array_key_exists($name, $this->tags))
+        {
+            $this->warning('Unsupported tag: @%s [%s:%s]', [$name, $file, $num]);
+            continue;
+        }
+        else if ($this->tags[$name] === null)
+        {
+            $params = true;
+        }
+        else
+        {
+            foreach ($this->tags[$name] as $key => $tagName)
+            {
+                $optional = strpos($tagName, '?') === 0;
 
-        unset($matches[0]);
+                if ($optional)
+                {
+                    $tagName = substr($tagName, 1);
+                }
 
-        var_dump($matches);
+                if (! isset($params[$key]))
+                {
+                    if (! $optional)
+                    {
+                        $args = [$name, implode('', $params), $tagName, $file, $num];
+                        $this->warning('Missed argument: @%s %s -> %s <- [%s:%s]', $args);
+                        continue;
+                    }
+                }
+                else
+                {
+                    $params[$tagName] = $params[$key];
+                    unset($params[$key]);
+                }
+            }
+        }
 
-        $name = $matches['name'];
-
-        $tokken = ['name' => $name, 'params' => $matches];
-
-        return $tokken;
+        return ['name' => $name, 'params' => $params];
     }
 
     /**
@@ -188,6 +238,7 @@ class Builder
      */
     protected function parseFile($path)
     {
+        $file       = str_replace($this->config['input'] . '/', '', $path);
         $contents   = Helper::getFileContents($path);
         $lines      = explode("\n", $contents);
         $inDocBlock = false;
@@ -203,33 +254,59 @@ class Builder
                 $inDocBlock = true;
                 $docBlock   =
                 [
+                    'type' => '',
                     'from' => $num + 1,
                     'to'   => $num + 1,
-                    'file' => str_replace($this->config['input'] . '/', '', $path),
-                    'type' => '',
+                    'file' => $file,
                     'text' => '',
                     'tags' => [],
                 ];
             }
             else if ($inDocBlock and strpos($line, '*/') === 0)
             {
-                $docBlock['to']   = $num + 1;
-                $docBlock['text'] = trim($docBlock['text']);
+                $inDocBlock = false;
 
-                $docBlocks[] = $docBlock;
-                $inDocBlock  = false;
+                if ($docBlock['type'] !== '')
+                {
+                    $docBlock['to']   = $num + 1;
+                    $docBlock['text'] = trim($docBlock['text']);
+                    $docBlocks[]      = $docBlock;
+                }
             }
             else if ($inDocBlock)
             {
-                $line = strlen($line) > 2 ? substr($line, 2) : '';
+                $line = preg_replace('/^\* ?/', '', $line);
 
                 if ($line === '' or $line[0] !== '@')
                 {
                     $docBlock['text'] .= "$line\n";
                 }
+                else
+                {
+                    $tag = $this->parseDocBlockTag($line, $file, $num);
 
+                    if (in_array($tag['name'], $this->primaryTags))
+                    {
+                        $docBlock['type'] = $tag['name'];
+                    }
+
+                    if (in_array($tag['name'], $this->multipleTags))
+                    {
+                        $docBlock['tags'][$tag['name']][] = $tag['params'];
+                    }
+                    else
+                    {
+                        $docBlock['tags'][$tag['name']] = $tag['params'];
+                    }
+                }
             }
         }
+
+        /**
+         * Haaaaaaaaaaaaaaaaaaaaaaaaaa.
+         * Hoooooooooooooooooooooooooo.
+         * Hiiiiiiiiiiiiiiiiiiiiiiiiii.
+         */
 
         return $docBlocks;
     }
