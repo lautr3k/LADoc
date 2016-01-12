@@ -41,7 +41,7 @@ class Helper
      * @method absolutePath
      * @param  string  $path
      * @param  boolean [$strict=true] Throw an exception if does not exist.
-     * @throws Error   If `$path` does not exist and `$strict = true`.
+     * @throw  Error   If `$path` does not exist and `$strict = true`.
      * @return string
      */
     public static function absolutePath($path, $strict = true)

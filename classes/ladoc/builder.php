@@ -54,27 +54,27 @@ class Builder
     */
     protected $tags =
     [
-        'author'      => 1,
-        'class'       => 1,
-        'constructor' => 0,
-        'copyright'   => 1,
-        'extend'      => 1,
-        'license'     => 1,
-        'link'        => 1,
-        'method'      => 1,
-        'namespace'   => 1,
-        'param'       => 3,
-        'private'     => 0,
-        'property'    => 1,
-        'protected'   => 0,
-        'public'      => 0,
-        'return'      => 2,
-        'source'      => 1,
-        'throw'       => 1,
-        'static'      => 0,
-        'type'        => 1,
-        'use'         => 1,
-        'version'     => 1
+        'author'      => ['text'],
+        'class'       => ['text'],
+        'constructor' => null,
+        'copyright'   => ['text'],
+        'extend'      => ['text'],
+        'license'     => ['text'],
+        'link'        => ['url', 'text?'],
+        'method'      => ['text'],
+        'namespace'   => ['text'],
+        'param'       => ['type', 'name', 'text?'],
+        'private'     => null,
+        'property'    => ['text'],
+        'protected'   => null,
+        'public'      => null,
+        'return'      => ['type', 'text?'],
+        'source'      => ['url', 'text?'],
+        'throw'       => ['type', 'text?'],
+        'static'      => null,
+        'type'        => ['text'],
+        'use'         => ['text'],
+        'version'     => ['text']
     ];
 
     /**
@@ -116,6 +116,15 @@ class Builder
     ];
 
     /**
+     * Classes collection indexed by namespace.
+     *
+     * @protected
+     * @property classes
+     * @type     array
+    */
+    protected $classes = [];
+
+    /**
      * Class constructor.
      *
      * @constructor
@@ -140,22 +149,6 @@ class Builder
     }
 
     /**
-     * Get the input files tree.
-     *
-     * @protected
-     * @method getFilesTree
-     */
-    protected function getFilesTree()
-    {
-        $this->filesTree = Helper::scanPath
-        (
-            $this->config['input'],
-            $this->config['includes'],
-            $this->config['excludes']
-        );
-    }
-
-    /**
      * Parse a DocBlock tag string.
      *
      * @protected
@@ -165,24 +158,19 @@ class Builder
      */
     protected function parseDocBlockTag($tag)
     {
-        $result        = [];
-        $tag           = substr($tag, 1);
-        $firstSpacePos = strpos($tag, ' ');
-        $tokken        = ['name' => $tag, 'params' => null];
+        $pattern = "^@(?P<name>[a-z]+)";
 
-        if (! $firstSpacePos)
-        {
-            return $tokken;
-        }
+        preg_match("/$pattern/", $tag, $matches);
 
-        $tag    = preg_replace('|[ ]++|', ' ', $tag);
-        $name   = substr($tag, 0, $firstSpacePos);
-        $value  = substr($tag, $firstSpacePos + 1);
-        $limit  = isset($this->tags[$name]) ? $this->tags[$name] : 2;
-        $params = array_pad(explode(' ', $value, $limit), $limit, null);
+        $matches = array_unique($matches);
 
-        $tokken['name']   = $name;
-        $tokken['params'] = $params;
+        unset($matches[0]);
+
+        var_dump($matches);
+
+        $name = $matches['name'];
+
+        $tokken = ['name' => $name, 'params' => $matches];
 
         return $tokken;
     }
@@ -195,7 +183,8 @@ class Builder
      *
      * @protected
      * @method parseFile
-     * @param string $path
+     * @param  string $path
+     * @return array
      */
     protected function parseFile($path)
     {
@@ -207,78 +196,42 @@ class Builder
 
         foreach ($lines as $num => $line)
         {
-            $line    = trim($line);
-            $lineLen = strlen($line);
+            $line = trim($line);
 
-            if (! $inDocBlock and $lineLen > 1 and $line[0] == '/' and $line[1] == '*')
+            if (! $inDocBlock and strpos($line, '/*') === 0)
             {
-                // DocBlock start
                 $inDocBlock = true;
                 $docBlock   =
                 [
-                    'type' => null,
+                    'from' => $num + 1,
+                    'to'   => $num + 1,
+                    'file' => str_replace($this->config['input'] . '/', '', $path),
+                    'type' => '',
                     'text' => '',
                     'tags' => [],
-                    'from' => $num + 1,
-                    'to'   => null,
-                    'file' => str_replace($this->config['input'] . '/', '', $path)
                 ];
             }
-            else if ($inDocBlock and $lineLen > 1 and $line[0] == '*' and $line[1] == '/')
+            else if ($inDocBlock and strpos($line, '*/') === 0)
             {
-                // DocBlock end
-                $docBlock['to'] = $num + 1;
-                $docBlocks[]    = $docBlock;
-                $inDocBlock     = false;
+                $docBlock['to']   = $num + 1;
+                $docBlock['text'] = trim($docBlock['text']);
+
+                $docBlocks[] = $docBlock;
+                $inDocBlock  = false;
             }
             else if ($inDocBlock)
             {
-                $line = $lineLen > 2 ? substr($line, 2) : '';
+                $line = strlen($line) > 2 ? substr($line, 2) : '';
 
                 if ($line === '' or $line[0] !== '@')
                 {
-                    // Collect text block
                     $docBlock['text'] .= "$line\n";
                 }
-                else
-                {
-                    // Tokkenize tag string
-                    $tag = $this->parseDocBlockTag($line);
 
-                    // Get the primary tag
-                    if (in_array($tag['name'], $this->primaryTags))
-                    {
-                        $docBlock['type'] = $tag['name'];
-                    }
-
-                    // Register tag by type
-                    if (in_array($tag['name'], $this->multipleTags))
-                    {
-                        $docBlock['tags'][$tag['name']][] = $tag;
-                    }
-                    else
-                    {
-                        $docBlock['tags'][$tag['name']] = $tag;
-                    }
-                }
             }
         }
 
-        var_dump($docBlocks);
-    }
-
-    /**
-     * Parse the files tree.
-     *
-     * @protected
-     * @method parseFilesTree
-     */
-    protected function parseFilesTree()
-    {
-        foreach ($this->filesTree as $path)
-        {
-            $this->parseFile($path);
-        }
+        return $docBlocks;
     }
 
     /**
@@ -288,9 +241,15 @@ class Builder
      */
     public function build()
     {
-        $this->getFilesTree();
-        $this->parseFilesTree();
+        $this->filesTree = Helper::scanPath
+        (
+            $this->config['input'],
+            $this->config['includes'],
+            $this->config['excludes']
+        );
 
-        var_dump($this->filesTree);
+        $docBlocks = array_map(array($this, 'parseFile'), $this->filesTree);
+
+        var_dump($docBlocks);
     }
 }

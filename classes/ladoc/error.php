@@ -62,7 +62,7 @@ class Error extends \ErrorException
      * @method raise
      * @param  string $message
      * @param  array  [$args]
-     * @throws Error
+     * @throw  Error
      */
     public static function raise($message, $args = array())
     {
