@@ -45,6 +45,9 @@ class Builder
     /**
      * Tags list.
      *
+     * - Indexed by tag name.
+     * - The value is the maximum number of parameters allowed.
+     *
      * @protected
      * @property tags
      * @type     array
@@ -75,7 +78,9 @@ class Builder
     ];
 
     /**
-     * Required tags list.
+     * Primary tags list.
+     *
+     * - One and only one of this tags must be present in a doc block.
      *
      * @protected
      * @property primaryTags
@@ -92,6 +97,8 @@ class Builder
 
     /**
      * Multiple tags list.
+     *
+     * - Tags allowed to be used multiple time in the same doc block.
      *
      * @protected
      * @property multipleTags
@@ -161,10 +168,11 @@ class Builder
         $result        = [];
         $tag           = substr($tag, 1);
         $firstSpacePos = strpos($tag, ' ');
+        $tokken        = ['name' => $tag, 'params' => null];
 
         if (! $firstSpacePos)
         {
-            return ['name' => $tag, 'params' => null];
+            return $tokken;
         }
 
         $tag    = preg_replace('|[ ]++|', ' ', $tag);
@@ -173,11 +181,17 @@ class Builder
         $limit  = isset($this->tags[$name]) ? $this->tags[$name] : 2;
         $params = array_pad(explode(' ', $value, $limit), $limit, null);
 
-        return ['name' => $name, 'params' => $params];
+        $tokken['name']   = $name;
+        $tokken['params'] = $params;
+
+        return $tokken;
     }
 
     /**
      * Parse a file.
+     *
+     * - Extract DocBlocks.
+     * - Tokkenize DocBlocks.
      *
      * @protected
      * @method parseFile
@@ -198,6 +212,7 @@ class Builder
 
             if (! $inDocBlock and $lineLen > 1 and $line[0] == '/' and $line[1] == '*')
             {
+                // DocBlock start
                 $inDocBlock = true;
                 $docBlock   =
                 [
@@ -211,6 +226,7 @@ class Builder
             }
             else if ($inDocBlock and $lineLen > 1 and $line[0] == '*' and $line[1] == '/')
             {
+                // DocBlock end
                 $docBlock['to'] = $num + 1;
                 $docBlocks[]    = $docBlock;
                 $inDocBlock     = false;
@@ -221,17 +237,21 @@ class Builder
 
                 if ($line === '' or $line[0] !== '@')
                 {
+                    // Collect text block
                     $docBlock['text'] .= "$line\n";
                 }
                 else
                 {
+                    // Tokkenize tag string
                     $tag = $this->parseDocBlockTag($line);
 
+                    // Get the primary tag
                     if (in_array($tag['name'], $this->primaryTags))
                     {
                         $docBlock['type'] = $tag['name'];
                     }
 
+                    // Register tag by type
                     if (in_array($tag['name'], $this->multipleTags))
                     {
                         $docBlock['tags'][$tag['name']][] = $tag;
