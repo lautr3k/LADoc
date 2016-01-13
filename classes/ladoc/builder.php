@@ -71,6 +71,15 @@ class Builder
     ];
 
     /**
+     * Warnings messages collection.
+     *
+     * @protected
+     * @property warnings
+     * @type     array
+    */
+    protected $warnings = [];
+
+    /**
      * Class constructor.
      *
      * @constructor
@@ -102,6 +111,22 @@ class Builder
     }
 
     /**
+     * Log a warning message.
+     *
+     * @protected
+     * @method warning
+     * @param  string  $file
+     * @param  integer $line
+     * @param  string  $message
+     * @param  array   [$data=[]]
+     */
+    protected function warning($file, $line, $message, $data = [])
+    {
+        $data = array_merge($data, [$file, $line]);
+        $this->warnings[] = vsprintf($message . ' in %s:%s', $data);
+    }
+
+    /**
      * Parse a file.
      *
      * - Extract DocBlocks.
@@ -111,6 +136,7 @@ class Builder
      * @method parseFile
      * @param  string $path
      * @return array
+     * @unknown unknownTag Unknown tag.
      */
     protected function parseFile($path)
     {
@@ -121,9 +147,10 @@ class Builder
         $lines = explode("\n", $contents);
 
         // Init parser variables
-        $inDocBlock = false;
-        $docBlock   = [];
-        $docBlocks  = [];
+        $inDocBlock  = false;
+        $docBlock    = [];
+        $docBlocks   = [];
+        $docBlockKey = 0;
 
         // For each line
         foreach ($lines as $num => $rawLine)
@@ -148,6 +175,7 @@ class Builder
                 [
                     'type' => '',
                     'text' => '',
+                    'list' => [],
                     'tags' => [],
                     'from' => $line,
                     'to'   => $line,
@@ -173,6 +201,9 @@ class Builder
                 // Set we are not in a DocBlock
                 $inDocBlock = false;
 
+                // Increment block number
+                $docBlockKey++;
+
                 // Go to next line
                 continue;
             }
@@ -195,11 +226,21 @@ class Builder
                     // Extract tag name
                     $name = substr($args[0], 1);
 
+                    // If is an unknown tag
+                    if (! isset($this->tags[$name]))
+                    {
+                        // Log warning message
+                        $this->warning($file, $num, 'Unknown tag [@%s]', [$name]);
+
+                        // Go to next line
+                        continue;
+                    }
+
                     // Extract arguments
                     $args = isset($args[1]) ? trim($args[1]) : '';
 
-                    // Debugage...
-                    var_dump([$name, $args]);
+                    // Parse arguments
+                    //var_dump([$name, $args]);
 
                     // Go to next line
                     continue;
@@ -218,8 +259,15 @@ class Builder
              * No tags...
              */
 
-            // If not in DocBlock. Collect single line comments
-            // todo...
+            // If single line comment found
+            if (strpos($line, '//') === 0)
+            {
+                // Remove start comment chars
+                $line = trim(substr($line, 2));
+
+                // Collect verbose comment in last block found
+                $docBlocks[$docBlockKey-1]['list'][] = $line;
+            }
         }
 
         // Return docBlocks collection
@@ -259,6 +307,7 @@ class Builder
         $this->parseFilesTree();
 
         // Debugage...
+        var_dump($this->warnings);
         var_dump($this->filesTree);
     }
 }
