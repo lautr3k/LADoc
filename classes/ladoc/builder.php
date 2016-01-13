@@ -74,6 +74,38 @@ class Builder
     }
 
     /**
+     * Parse a file.
+     *
+     * - Extract DocBlocks.
+     * - Tokkenize DocBlocks.
+     *
+     * @protected
+     * @method parseFile
+     * @param  string $path
+     * @return array
+     */
+    protected function parseFile($path)
+    {
+
+    }
+
+    /**
+     * Parse the files tree.
+     *
+     * @protected
+     * @method parseFilesTree
+     */
+    protected function parseFilesTree()
+    {
+        foreach ($this->filesTree as $path)
+        {
+            $docBlocks = $this->parseFile($path);
+
+            //$this->parseDocBlocks($path, $docBlocks);
+        }
+    }
+
+    /**
      * Build the documentation.
      *
      * @method build
@@ -81,6 +113,7 @@ class Builder
     public function build()
     {
         $this->getFilesTree();
+        $this->parseFilesTree();
 
         var_dump($this->filesTree);
     }
