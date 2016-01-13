@@ -156,6 +156,15 @@ class Builder
     protected $warnings = [];
 
     /**
+     * DocBlocks collection.
+     *
+     * @protected
+     * @property docBlocks
+     * @type     array
+    */
+    protected $docBlocks = [];
+
+    /**
      * Class constructor.
      *
      * @constructor
@@ -232,7 +241,7 @@ class Builder
 
             // Compile the named part regexp
             return "(?P<$name>$pattern)" . ($optional ? '?' : '');
-            
+
         }, $params);
 
         // Concact all compiled parts
@@ -521,15 +530,8 @@ class Builder
      */
     protected function parseFilesTree()
     {
-        // For each file in tree
-        foreach ($this->filesTree as $path)
-        {
-            // Extract all docBlocks
-            $docBlocks = $this->parseFile($path);
-
-            // Debugage...
-            var_dump($docBlocks);
-        }
+        // For each file in tree, extract all DocBlocks
+        $this->docBlocks = array_map([$this, 'parseFile'], $this->filesTree);
     }
 
     /**
@@ -548,5 +550,6 @@ class Builder
         // Debugage...
         var_dump($this->warnings);
         var_dump($this->filesTree);
+        var_dump($this->docBlocks);
     }
 }
