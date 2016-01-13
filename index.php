@@ -20,8 +20,10 @@ define('CLASSES_PATH', ROOT_PATH . '/classes');
 // Auto load classes
 spl_autoload_register(function($class_name)
 {
+    // Normalize file path
     $filename = str_replace('\\', '/', strtolower($class_name));
 
+    // Try to include de class file
     require CLASSES_PATH . '/' . $filename . '.php';
 });
 
@@ -30,18 +32,23 @@ try
     // Start buffer
     ob_start();
 
-    // Create the project builder instance
+    // Create builder instance
     $builder = new Builder();
 
-    // Build and display the output
+    // Build the output
     $builder->build();
 }
 catch (\Exception $e)
 {
+    // Clean buffer
+    ob_clean();
+
+    // Error messages
     $message = $e->getMessage();
     $file    = $e->getFile();
     $line    = $e->getLine();
 
+    // Override output
     $output  = "<html lang=\"en\"><head><meta charset=\"utf-8\">";
     $output .= "<title>Error !</title></head><body>";
     $output .= "<h1>Error !</h1><hr /><pre>";
@@ -50,7 +57,6 @@ catch (\Exception $e)
     $output .= "<b>Line    :</b> $line\n";
     $output .= "</pre></body></html>";
 
-    ob_clean();
-    
+    // Print output
     echo $output;
 }
