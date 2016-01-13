@@ -43,7 +43,22 @@ class Builder
     protected $filesTree = [];
 
     /**
-     * Tags regexp collection, indexed by tag name.
+     * Regexp collection.
+     *
+     * @protected
+     * @property patterns
+     * @type     array
+    */
+    protected $patterns =
+    [
+        'text'   => '.+',
+        'string' => '[^ ]+',
+        'space'  => ' ',
+        'spaces' => ' +',
+    ];
+
+    /**
+     * Tags patterns indexed by tag name.
      *
      * @protected
      * @property tags
@@ -51,29 +66,38 @@ class Builder
     */
     protected $tags =
     [
-        'author'      => '',
-        'class'       => '',
-        'constructor' => '',
-        'copyright'   => '',
-        'extends'     => '',
-        'license'     => '',
-        'method'      => '',
-        'namespace'   => '',
-        'param'       => '',
-        'property'    => '',
-        'protected'   => '',
-        'return'      => '',
-        'source'      => '',
-        'static'      => '',
-        'throw'       => '',
-        'type'        => '',
-        'version'     => ''
+        'author'      => 'name:text ?spaces ?link:string',
+        'class'       => 'name:string',
+        'constructor' => null,
+        'copyright'   => 'text:text',
+        'extends'     => 'name:string',
+        'license'     => 'name:string ?text:text',
+        'method'      => 'name:string',
+        'namespace'   => 'name:string',
+        'param'       => 'type:string spaces name:string ?text:text',
+        'property'    => 'name:string',
+        'private'     => null,
+        'protected'   => null,
+        'public'      => null,
+        'return'      => 'type:string ?text:text',
+        'source'      => 'url:string ?text:text',
+        'static'      => null,
+        'throw'       => 'type:string ?text:text',
+        'type'        => 'name:string',
+        'version'     => 'number:string ?text:text'
     ];
 
     /**
-     * Primary tags list.
+     * Compiled tags patterns indexed by tag name.
      *
-     * - One and only one of this tags must be present in a doc block.
+     * @protected
+     * @property tags
+     * @type     array
+    */
+    protected $tagsPatterns = [];
+
+    /**
+     * List of tags that can not be present more than once in the same block.
      *
      * @protected
      * @property primaryTags
@@ -86,6 +110,40 @@ class Builder
         'method',
         'namespace',
         'property'
+    ];
+
+    /**
+     * List of tags that have no parameters.
+     *
+     * @protected
+     * @property singleTags
+     * @type     array
+    */
+    protected $singleTags =
+    [
+        'constructor',
+        'private',
+        'protected',
+        'public',
+        'static'
+    ];
+
+    /**
+     * List of tags that can be present more than once in the same block.
+     *
+     * @protected
+     * @property multipleTags
+     * @type     array
+    */
+    protected $multipleTags =
+    [
+        'author',
+        'copyright',
+        'extends',
+        'param',
+        'return',
+        'throw',
+        'type'
     ];
 
     /**
@@ -110,6 +168,47 @@ class Builder
         // Normalize and test if input and output path exists
         $this->config['input']  = Helper::absolutePath($this->config['input']);
         $this->config['output'] = Helper::absolutePath($this->config['output']);
+
+        // Compile the tags regexp collection
+        $this->tagsPatterns = array_filter(array_map(function($pattern)
+        {
+            if ($pattern === null)
+            {
+                return null;
+            }
+
+            $parts = array_filter(explode(' ', $pattern));
+            $parts = array_map(function($part)
+            {
+                $part     = explode(':', $part);
+                $optional = $part[0][0] === '?';
+
+                if ($optional)
+                {
+                    $part[0] = substr($part[0], 1);
+                }
+
+                $opt = $optional ? '?' : '';
+
+                if (! isset($part[1]))
+                {
+                    return $this->patterns[$part[0]] . $opt;
+                }
+
+                $name    = $part[0];
+                $pattern = $this->patterns[$part[1]];
+
+                return "(?P<$name>$pattern)" . $opt;
+            },
+            $parts);
+
+            $pattern = implode('', $parts);
+
+            return "/$pattern(?P<_>.*)?/";
+        },
+        $this->tags));
+
+        var_dump($this->tagsPatterns);
     }
 
     /**
@@ -192,13 +291,13 @@ class Builder
                 // Reset current info collection
                 $docBlock =
                 [
-                    'type'    => '',
-                    'text'    => '',
-                    'verbose' => [],
-                    'tags'    => [],
-                    'from'    => $line,
-                    'to'      => $line,
-                    'file'    => $file
+                    'type'     => '',
+                    'text'     => '',
+                    'comments' => [],
+                    'tags'     => [],
+                    'from'     => $line,
+                    'to'       => $line,
+                    'file'     => $file
                 ];
 
                 // Go to next line
@@ -221,13 +320,14 @@ class Builder
                     $docBlockKey--;
 
                     // Split text found on new line
-                    $list = array_filter(explode("\n", $docBlock['text']));
+                    $comments = array_filter(explode("\n", $docBlock['text']));
 
-                    // Merge verbose comments list in last block found
-                    $docBlocks[$docBlockKey]['verbose'] = array_merge
-                    (
-                        $docBlocks[$docBlockKey]['verbose'], $list
-                    );
+                    // Merge comments in last block found
+                    foreach ($comments as $num => $comment)
+                    {
+                        $num = $docBlock['from'] + $num + 1;
+                        $docBlocks[$docBlockKey]['comments'][$num] = $comment;
+                    }
                 }
 
                 // If primary tag found
@@ -266,7 +366,7 @@ class Builder
                     $name = substr($args[0], 1);
 
                     // If is an unknown tag
-                    if (! isset($this->tags[$name]))
+                    if (! array_key_exists($name, $this->tags))
                     {
                         // Log warning message
                         $this->warning($file, $num, 'Unknown tag [@%s]', [$name]);
@@ -282,7 +382,7 @@ class Builder
                         if ($docBlock['type'] !== '')
                         {
                             // Log warning message
-                            $message = 'Try to redefine primary tag [@%s] to [@%s]';
+                            $message = 'Try to redefine [@%s] to [@%s]';
                             $data    =  [$docBlock['type'], $name];
                             $this->warning($file, $num, $message, $data);
 
@@ -294,11 +394,60 @@ class Builder
                         $docBlock['type'] = $name;
                     }
 
+                    // If tag without parameters
+                    if (in_array($name, $this->singleTags))
+                    {
+                        // Add single tag to collection
+                        $docBlock['tags'][$name] = null;
+
+                        // Go to next line
+                        continue;
+                    }
+
                     // Extract arguments
                     $args = isset($args[1]) ? trim($args[1]) : '';
 
                     // Parse arguments
-                    //var_dump([$name, $args]);
+                    preg_match($this->tagsPatterns[$name], $args, $params);
+
+                    // If no parameter found
+                    if (empty($params))
+                    {
+                        // Log warning message
+                        $message = 'Malformed parameters for [@%s] expected [%s]';
+                        $data    =  [$name, $this->tags[$name]];
+                        $this->warning($file, $num, $message, $data);
+
+                        // Go to next line
+                        continue;
+                    }
+
+                    // Clean parameters found
+                    array_shift($params);
+                    $params = array_unique($params);
+
+                    // If too many parameters
+                    if (! empty($params['_']))
+                    {
+                        // Log warning message
+                        $message = 'Too many parameters for [@%s] expected [%s]';
+                        $data    =  [$name, $this->tags[$name]];
+                        $this->warning($file, $num, $message, $data);
+                    }
+
+                    // If multiple tag type
+                    if (in_array($name, $this->multipleTags))
+                    {
+                        // Append tag
+                        $docBlock['tags'][$name][] = $params;
+                    }
+
+                    // If single tag
+                    else
+                    {
+                        // Set tag
+                        $docBlock['tags'][$name] = $params;
+                    }
 
                     // Go to next line
                     continue;
@@ -323,8 +472,8 @@ class Builder
                 // Remove start comment chars
                 $line = trim(substr($line, 2));
 
-                // Add verbose comment line in last block found
-                $docBlocks[$docBlockKey-1]['verbose'][] = $line;
+                // Add comment in last block found
+                $docBlocks[$docBlockKey-1]['comments'][$num + 1] = $line;
             }
         }
 
@@ -336,6 +485,7 @@ class Builder
      * Parse the files tree.
      *
      * @protected
+     * @author
      * @method parseFilesTree
      */
     protected function parseFilesTree()
