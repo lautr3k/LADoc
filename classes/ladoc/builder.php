@@ -214,8 +214,25 @@ class Builder
                 // Trim collected text
                 $docBlock['text'] = trim($docBlock['text']);
 
-                // Save DocBlock info
-                $docBlocks[] = $docBlock;
+                // If no primary tag found
+                if ($docBlock['type'] === '')
+                {
+                    // Split text on new line
+                    $list = array_filter(explode("\n", $docBlock['text']));
+
+                    // Decrement block number
+                    $docBlockKey--;
+
+                    // Collect verbose comment in last block found
+                    $docBlocks[$docBlockKey]['list'] = array_merge($docBlocks[$docBlockKey]['list'], $list);
+                }
+
+                // If valid DocBlock
+                else
+                {
+                    // Save DocBlock info
+                    $docBlocks[] = $docBlock;
+                }
 
                 // Set we are not in a DocBlock
                 $inDocBlock = false;
@@ -255,11 +272,11 @@ class Builder
                         continue;
                     }
 
-                    // If is an primary tag
+                    // If primary tag found
                     if (in_array($name, $this->primaryTags))
                     {
-                        // If primary tag already set
-                        if (! empty($docBlock['type']))
+                        // If already set
+                        if ($docBlock['type'] !== '')
                         {
                             // Log warning message
                             $message = 'Primary tag already defined as [@%s]. ';
