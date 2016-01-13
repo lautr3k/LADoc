@@ -165,6 +165,15 @@ class Builder
     protected $docBlocks = [];
 
     /**
+     * Classes collection indexed by namespace.
+     *
+     * @protected
+     * @property classes
+     * @type     array
+    */
+    protected $classes = [];
+
+    /**
      * Class constructor.
      *
      * @constructor
@@ -179,7 +188,7 @@ class Builder
         $this->config['output'] = Helper::absolutePath($this->config['output']);
 
         // Compile tags collection to regexp patterns collection
-        $compiler           = array($this, 'compilePattern');
+        $compiler           = [$this, 'compilePattern'];
         $this->tagsPatterns = array_filter(array_map($compiler, $this->tags));
     }
 
@@ -438,7 +447,7 @@ class Builder
                     if (in_array($name, $this->singleTags))
                     {
                         // Add single tag to collection
-                        $docBlock['tags'][$name] = null;
+                        $docBlock['tags'][$name] = true;
 
                         // Go to next line
                         continue;
@@ -532,6 +541,75 @@ class Builder
     {
         // For each file in tree, extract all DocBlocks
         $this->docBlocks = array_map([$this, 'parseFile'], $this->filesTree);
+
+        // Reduce the DocBlocks collection to one dimension collection
+        $this->docBlocks = array_reduce($this->docBlocks, 'array_merge', []);
+
+        // Init parser variables
+        $currentNs    = null;
+        $currentClass = null;
+
+        // For each DocBlock in collection
+        foreach ($this->docBlocks as $docBlock)
+        {
+            // If namespace type
+            if ($docBlock['type'] === 'namespace')
+            {
+                // Set as current namespace
+                $namespace = $docBlock['tags']['namespace']['name'];
+                $currentNs = &$this->classes[$namespace];
+
+                // Go to next block
+                continue;
+            }
+
+            // If class type
+            if ($docBlock['type'] === 'class')
+            {
+                // Set as current class
+                $className    = $docBlock['tags']['class']['name'];
+                $currentClass = &$currentNs[$className];
+
+                // Set file and line number
+                $currentClass['file'] = $docBlock['file'];
+                $currentClass['line'] = $docBlock['to'] + 1;
+
+                // Go to next block
+                continue;
+            }
+
+            // If method type
+            if ($docBlock['type'] == 'method')
+            {
+                // Get the method name
+                $methodName = $docBlock['tags']['method']['name'];
+
+                // Remove method tag from tags list
+                unset($docBlock['tags']['method']);
+
+                // Add method tags list to current class
+                $currentClass['methods'][$methodName] = $docBlock['tags'];
+
+                // Go to next block
+                continue;
+            }
+
+            // If property type
+            if ($docBlock['type'] == 'property')
+            {
+                // Get property name
+                $propertyName = $docBlock['tags']['property']['name'];
+
+                // Remove property tag from tags list
+                unset($docBlock['tags']['property']);
+
+                // Add property tags list to current class
+                $currentClass['properties'][$propertyName] = $docBlock['tags'];
+
+                // Go to next block
+                continue;
+            }
+        }
     }
 
     /**
@@ -550,6 +628,7 @@ class Builder
         // Debugage...
         var_dump($this->warnings);
         var_dump($this->filesTree);
+        var_dump($this->classes);
         var_dump($this->docBlocks);
     }
 }
