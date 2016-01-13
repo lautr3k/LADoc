@@ -192,13 +192,13 @@ class Builder
                 // Reset current info collection
                 $docBlock =
                 [
-                    'type' => '',
-                    'text' => '',
-                    'list' => [],
-                    'tags' => [],
-                    'from' => $line,
-                    'to'   => $line,
-                    'file' => $file
+                    'type'    => '',
+                    'text'    => '',
+                    'verbose' => [],
+                    'tags'    => [],
+                    'from'    => $line,
+                    'to'      => $line,
+                    'file'    => $file
                 ];
 
                 // Go to next line
@@ -217,17 +217,20 @@ class Builder
                 // If no primary tag found
                 if ($docBlock['type'] === '')
                 {
-                    // Split text on new line
-                    $list = array_filter(explode("\n", $docBlock['text']));
-
                     // Decrement block number
                     $docBlockKey--;
 
-                    // Collect verbose comment in last block found
-                    $docBlocks[$docBlockKey]['list'] = array_merge($docBlocks[$docBlockKey]['list'], $list);
+                    // Split text found on new line
+                    $list = array_filter(explode("\n", $docBlock['text']));
+
+                    // Merge verbose comments list in last block found
+                    $docBlocks[$docBlockKey]['verbose'] = array_merge
+                    (
+                        $docBlocks[$docBlockKey]['verbose'], $list
+                    );
                 }
 
-                // If valid DocBlock
+                // If primary tag found
                 else
                 {
                     // Save DocBlock info
@@ -279,8 +282,7 @@ class Builder
                         if ($docBlock['type'] !== '')
                         {
                             // Log warning message
-                            $message = 'Primary tag already defined as [@%s]. ';
-                            $message.= 'You can not redefine it to [@%s]';
+                            $message = 'Try to redefine primary tag [@%s] to [@%s]';
                             $data    =  [$docBlock['type'], $name];
                             $this->warning($file, $num, $message, $data);
 
@@ -321,8 +323,8 @@ class Builder
                 // Remove start comment chars
                 $line = trim(substr($line, 2));
 
-                // Collect verbose comment in last block found
-                $docBlocks[$docBlockKey-1]['list'][] = $line;
+                // Add verbose comment line in last block found
+                $docBlocks[$docBlockKey-1]['verbose'][] = $line;
             }
         }
 
