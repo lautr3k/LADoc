@@ -71,6 +71,24 @@ class Builder
     ];
 
     /**
+     * Primary tags list.
+     *
+     * - One and only one of this tags must be present in a doc block.
+     *
+     * @protected
+     * @property primaryTags
+     * @type     array
+    */
+    protected $primaryTags =
+    [
+        'class',
+        'constructor',
+        'method',
+        'namespace',
+        'property'
+    ];
+
+    /**
      * Warnings messages collection.
      *
      * @protected
@@ -137,6 +155,7 @@ class Builder
      * @param  string $path
      * @return array
      * @unknown unknownTag Unknown tag.
+     * @class Bob
      */
     protected function parseFile($path)
     {
@@ -234,6 +253,26 @@ class Builder
 
                         // Go to next line
                         continue;
+                    }
+
+                    // If is an primary tag
+                    if (in_array($name, $this->primaryTags))
+                    {
+                        // If primary tag already set
+                        if (! empty($docBlock['type']))
+                        {
+                            // Log warning message
+                            $message = 'Primary tag already defined as [@%s]. ';
+                            $message.= 'You can not redefine it to [@%s]';
+                            $data    =  [$docBlock['type'], $name];
+                            $this->warning($file, $num, $message, $data);
+
+                            // Go to next line
+                            continue;
+                        }
+
+                        // Set DocBlock type (tag name)
+                        $docBlock['type'] = $name;
                     }
 
                     // Extract arguments
