@@ -169,46 +169,77 @@ class Builder
         $this->config['input']  = Helper::absolutePath($this->config['input']);
         $this->config['output'] = Helper::absolutePath($this->config['output']);
 
-        // Compile the tags regexp collection
-        $this->tagsPatterns = array_filter(array_map(function($pattern)
+        // Compile tags collection to regexp patterns collection
+        $compiler           = array($this, 'compilePattern');
+        $this->tagsPatterns = array_filter(array_map($compiler, $this->tags));
+    }
+
+    /**
+     * Compile tags collection to regexp patterns collection.
+     *
+     * @protected
+     * @method compilePattern
+     * @param  string $pattern
+     * @return string
+     */
+    protected function compilePattern($pattern)
+    {
+        // If tag name only
+        if ($pattern === null)
         {
-            if ($pattern === null)
+            // Nothing to compile
+            // Return null
+            return null;
+        }
+
+        // Split pattern on spaces
+        $params = array_filter(explode(' ', $pattern));
+
+        // For each parameter
+        $params = array_map(function($param)
+        {
+            // Test if it is an optional parameter
+            $optional = $param[0] === '?';
+
+            // If it is an optional parameter
+            if ($optional)
             {
-                return null;
+                // Remove optional parameter mark
+                $param = substr($param, 1);
             }
 
-            $parts = array_filter(explode(' ', $pattern));
-            $parts = array_map(function($part)
+            // Split parameter on colons
+            $param = explode(':', $param);
+
+            // If not an named parameter
+            if (! isset($param[1]))
             {
-                $part     = explode(':', $part);
-                $optional = $part[0][0] === '?';
+                // Get the parameter value
+                $value = $param[0];
 
-                if ($optional)
-                {
-                    $part[0] = substr($part[0], 1);
-                }
+                // Return the regexp in patterns list from the parameter value
+                return $this->patterns[$value] . ($optional ? '?' : '');
+            }
 
-                $opt = $optional ? '?' : '';
+            // Get the parameter name
+            $name = $param[0];
 
-                if (! isset($part[1]))
-                {
-                    return $this->patterns[$part[0]] . $opt;
-                }
+            // Get the parameter value
+            $value = $param[1];
 
-                $name    = $part[0];
-                $pattern = $this->patterns[$part[1]];
+            // Get the regexp in patterns list from the parameter value
+            $pattern = $this->patterns[$value];
 
-                return "(?P<$name>$pattern)" . $opt;
-            },
-            $parts);
+            // Compile the named part regexp
+            return "(?P<$name>$pattern)" . ($optional ? '?' : '');
+            
+        }, $params);
 
-            $pattern = implode('', $parts);
+        // Concact all compiled parts
+        $pattern = implode('', $params);
 
-            return "/$pattern(?P<_>.*)?/";
-        },
-        $this->tags));
-
-        var_dump($this->tagsPatterns);
+        // Make and return the final regexp
+        return "/$pattern(?P<_>.*)?/";
     }
 
     /**
