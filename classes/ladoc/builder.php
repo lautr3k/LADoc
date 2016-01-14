@@ -574,7 +574,7 @@ class Builder
         $currentClass = null;
 
         // For each DocBlock in collection
-        foreach ($this->docBlocks as $docBlock)
+        foreach ($this->docBlocks as $key => $docBlock)
         {
             // If namespace type
             if ($docBlock['type'] === 'namespace')
@@ -582,6 +582,9 @@ class Builder
                 // Set as current namespace
                 $namespace = $docBlock['tags']['namespace']['name'];
                 $currentNs = &$this->classes[$namespace];
+
+                // Add to global map
+                $this->docMap['namespaces'][$namespace] = $key;
 
                 // Go to next block
                 continue;
@@ -593,6 +596,9 @@ class Builder
                 // Set as current class
                 $className    = $docBlock['tags']['class']['name'];
                 $currentClass = &$currentNs[$className];
+
+                // Add to global map
+                $this->docMap['classes'][$namespace][$className] = $key;
 
                 // Set file and line number
                 $currentClass['file'] = $docBlock['file'];
@@ -607,6 +613,10 @@ class Builder
             {
                 // Get the method name
                 $methodName = $docBlock['tags']['method']['name'];
+
+                // Add to global map
+                $id = trim(implode('\\', [$namespace, $className, $methodName]), '\\');
+                $this->docMap['methods'][$id] = $key;
 
                 // Remove method tag from tags list
                 unset($docBlock['tags']['method']);
