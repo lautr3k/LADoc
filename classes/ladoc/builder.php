@@ -8,6 +8,7 @@
  * @copyright 2016 © Onl'Fait (http://www.onlfait.ch)
  * @author    Sébastien Mischler (skarab) <sebastien@onlfait.ch>
  * @namespace LADoc
+ * @main
  */
 namespace LADoc;
 
@@ -73,6 +74,7 @@ class Builder
         'copyright'   => 'text:text',
         'extends'     => 'name:string',
         'license'     => 'name:string ?text:text',
+        'main'        => null,
         'method'      => 'name:string',
         'namespace'   => 'name:string',
         'param'       => 'type:string spaces name:string ?text:text',
@@ -124,6 +126,7 @@ class Builder
     protected $singleTags =
     [
         'constructor',
+        'main',
         'private',
         'protected',
         'public',
