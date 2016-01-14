@@ -170,22 +170,13 @@ class Builder
     protected $docBlocks = [];
 
     /**
-     * Classes collection indexed by namespace.
-     *
-     * @protected
-     * @property classes
-     * @type     array
-    */
-    protected $classes = [];
-
-    /**
      * Documentation map.
      *
      * @protected
-     * @property docMap
+     * @property map
      * @type     array
     */
-    protected $docMap = [];
+    protected $map = [];
 
     /**
      * Class constructor.
@@ -374,13 +365,12 @@ class Builder
                 // Increment end line number
                 $docBlock['to']++;
 
-                // Trim collected text
-                $docBlock['text'] = trim($docBlock['text']);
-
                 // Extract first text line as title
                 $textParts = explode("\n", $docBlock['text'], 2);
                 $textParts = array_pad($textParts, 2, '');
+                $textParts = array_map('trim', $textParts);
 
+                // Set/Update block title and text
                 $docBlock['title'] = $textParts[0];
                 $docBlock['text']  = $textParts[1];
 
@@ -558,6 +548,35 @@ class Builder
     }
 
     /**
+     * Map a doc block.
+     *
+     * @static
+     * @protected
+     * @method docBlockMap
+     * @param  string $type
+     * @param  array  $target
+     * @param  array  $docBlock
+     * @return array
+     */
+    static protected function docBlockMap($type, $target, $docBlock)
+    {
+        // Add file and line number parameter to target
+        $target['file'] = $docBlock['file'];
+        $target['line'] = $docBlock['to'] + 1;
+
+        // Remove unnecessary/redundant parameters from documentation
+        unset($docBlock['tags'][$type]);
+        unset($docBlock['file']);
+        unset($docBlock['type']);
+
+        // Set the cleaned target documentation
+        $target['doc'] = $docBlock;
+
+        // Return the mapped target
+        return $target;
+    }
+
+    /**
      * Parse the files tree.
      *
      * @protected
@@ -569,7 +588,7 @@ class Builder
         // For each file in tree, extract all DocBlocks
         $this->docBlocks = array_map([$this, 'parseFile'], $this->filesTree);
 
-        // Reduce the DocBlocks collection to one dimension collection
+        // Reduce the DocBlocks collection to one dimensional collection
         $this->docBlocks = array_reduce($this->docBlocks, 'array_merge', []);
 
         // Init parser variables
@@ -577,17 +596,21 @@ class Builder
         $currentClass = null;
 
         // For each DocBlock in collection
-        foreach ($this->docBlocks as $key => $docBlock)
+        foreach ($this->docBlocks as $docBlock)
         {
             // If namespace type
             if ($docBlock['type'] === 'namespace')
             {
-                // Set as current namespace
+                // Get pointer to current namespace
                 $namespace = $docBlock['tags']['namespace']['name'];
-                $currentNs = &$this->classes[$namespace];
+                $currentNs = &$this->map['namespaces'][$namespace];
 
-                // Add to global map
-                $this->docMap['namespaces'][$namespace] = $key;
+                // If not already set or not set to main block
+                if (! isset($currentNs['doc']['tags']['main']))
+                {
+                    // Set current namespace (until main block is not found)
+                    $currentNs = self::docBlockMap('namespace', $currentNs, $docBlock);
+                }
 
                 // Go to next block
                 continue;
@@ -596,16 +619,12 @@ class Builder
             // If class type
             if ($docBlock['type'] === 'class')
             {
-                // Set as current class
+                // Get pointer to current class
                 $className    = $docBlock['tags']['class']['name'];
-                $currentClass = &$currentNs[$className];
+                $currentClass = &$currentNs['classes'][$className];
 
-                // Add to global map
-                $this->docMap['classes'][$namespace][$className] = $key;
-
-                // Set file and line number
-                $currentClass['file'] = $docBlock['file'];
-                $currentClass['line'] = $docBlock['to'] + 1;
+                // Set current class
+                $currentClass = self::docBlockMap('class', $currentClass, $docBlock);
 
                 // Go to next block
                 continue;
@@ -615,17 +634,11 @@ class Builder
             if ($docBlock['type'] == 'method')
             {
                 // Get the method name
-                $methodName = $docBlock['tags']['method']['name'];
+                $methodName    = $docBlock['tags']['method']['name'];
+                $currentMethod = &$currentClass['methods'][$methodName];
 
-                // Add to global map
-                $id = trim(implode('\\', [$namespace, $className, $methodName]), '\\');
-                $this->docMap['methods'][$id] = $key;
-
-                // Remove method tag from tags list
-                unset($docBlock['tags']['method']);
-
-                // Add method tags list to current class
-                $currentClass['methods'][$methodName] = $docBlock['tags'];
+                // Add method to current class
+                $currentMethod = self::docBlockMap('method', $currentMethod, $docBlock);
 
                 // Go to next block
                 continue;
@@ -634,14 +647,12 @@ class Builder
             // If property type
             if ($docBlock['type'] == 'property')
             {
-                // Get property name
-                $propertyName = $docBlock['tags']['property']['name'];
+                // Get the property name
+                $propertyName    = $docBlock['tags']['property']['name'];
+                $currentProperty = &$currentClass['properties'][$propertyName];
 
-                // Remove property tag from tags list
-                unset($docBlock['tags']['property']);
-
-                // Add property tags list to current class
-                $currentClass['properties'][$propertyName] = $docBlock['tags'];
+                // Add property to current class
+                $currentProperty = self::docBlockMap('property', $currentProperty, $docBlock);
 
                 // Go to next block
                 continue;
@@ -670,7 +681,7 @@ class Builder
         var_dump($this->filesTree);
 
         echo('<h1>Doc map</h1>');
-        var_dump($this->docMap);
+        var_dump($this->map);
 
         echo('<h1>Doc blocks</h1>');
         var_dump($this->docBlocks);
