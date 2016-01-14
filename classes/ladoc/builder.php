@@ -176,6 +176,15 @@ class Builder
     protected $classes = [];
 
     /**
+     * Documentation map.
+     *
+     * @protected
+     * @property docMap
+     * @type     array
+    */
+    protected $docMap = [];
+
+    /**
      * Class constructor.
      *
      * @constructor
@@ -343,6 +352,7 @@ class Builder
                 $docBlock =
                 [
                     'type'     => '',
+                    'title'    => '',
                     'text'     => '',
                     'comments' => [],
                     'tags'     => [],
@@ -363,6 +373,13 @@ class Builder
 
                 // Trim collected text
                 $docBlock['text'] = trim($docBlock['text']);
+
+                // Extract first text line as title
+                $textParts = explode("\n", $docBlock['text'], 2);
+                $textParts = array_pad($textParts, 2, '');
+                
+                $docBlock['title'] = array_shift($textParts);
+                $docBlock['text']  = array_shift($textParts);
 
                 // If no primary tag found
                 if ($docBlock['type'] === '')
@@ -633,9 +650,16 @@ class Builder
         $this->parseFilesTree();
 
         // Debugage...
+        echo('<h1>Warnings</h1>');
         var_dump($this->warnings);
+
+        echo('<h1>Files tree</h1>');
         var_dump($this->filesTree);
-        var_dump($this->classes);
+
+        echo('<h1>Doc map</h1>');
+        var_dump($this->docMap);
+
+        echo('<h1>Doc blocks</h1>');
         var_dump($this->docBlocks);
     }
 }
