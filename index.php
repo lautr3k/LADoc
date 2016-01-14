@@ -7,9 +7,8 @@
  * @source    https://github.com/lautr3k/LitDoc
  * @copyright 2016 © Onl'Fait (http://www.onlfait.ch)
  * @author    Sébastien Mischler (skarab) <sebastien@onlfait.ch>
- * @namespace LADoc
+ * @bootstrap LADoc
  */
-namespace LADoc;
 
 // Define root path (force unix style)
 define('ROOT_PATH', str_replace('\\', '/', __DIR__));
@@ -33,7 +32,7 @@ try
     ob_start();
 
     // Create builder instance
-    $builder = new Builder();
+    $builder = new \LADoc\Builder();
 
     // Build the output
     $builder->build();
