@@ -67,6 +67,7 @@ class Builder
     protected $tags =
     [
         'author'      => 'name:text ?spaces ?link:string',
+        'bootstrap'   => 'text:text',
         'class'       => 'name:string',
         'constructor' => null,
         'copyright'   => 'text:text',
@@ -105,6 +106,7 @@ class Builder
     */
     protected $primaryTags =
     [
+        'bootstrap',
         'class',
         'constructor',
         'method',
