@@ -377,9 +377,9 @@ class Builder
                 // Extract first text line as title
                 $textParts = explode("\n", $docBlock['text'], 2);
                 $textParts = array_pad($textParts, 2, '');
-                
-                $docBlock['title'] = array_shift($textParts);
-                $docBlock['text']  = array_shift($textParts);
+
+                $docBlock['title'] = $textParts[0];
+                $docBlock['text']  = $textParts[1];
 
                 // If no primary tag found
                 if ($docBlock['type'] === '')
