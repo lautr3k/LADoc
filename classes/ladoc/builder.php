@@ -325,6 +325,9 @@ class Builder
             // Trim whitespace
             $line = trim($rawLine);
 
+            // Get line number
+            $lineNum = $num + 1;
+
             // If not in a DocBlock and start tag found
             if (! $inDocBlock and ($line === '/**' or $line === '/*'))
             {
@@ -334,18 +337,15 @@ class Builder
                 // Set the relative file path
                 $file = str_replace($this->config['input'] . '/', '', $path);
 
-                // Set the start line num
-                $line = $num + 1;
-
-                // Reset current info collection
+                // Reset current block info
                 $docBlock =
                 [
                     'type'     => '',
                     'text'     => '',
                     'comments' => [],
                     'tags'     => [],
-                    'from'     => $line,
-                    'to'       => $line,
+                    'from'     => $lineNum,
+                    'to'       => $lineNum,
                     'file'     => $file
                 ];
 
@@ -368,14 +368,18 @@ class Builder
                     // Decrement block number
                     $docBlockKey--;
 
-                    // Split text found on new line
-                    $comments = array_filter(explode("\n", $docBlock['text']));
-
-                    // Merge comments in last block found
-                    foreach ($comments as $num => $comment)
+                    // If not the first block in file
+                    if (! empty($docBlocks))
                     {
-                        $num = $docBlock['from'] + $num + 1;
-                        $docBlocks[$docBlockKey]['comments'][$num] = $comment;
+                        // Split text found on new line
+                        $comments = array_filter(explode("\n", $docBlock['text']));
+
+                        // Merge comments in last block found
+                        foreach ($comments as $num => $comment)
+                        {
+                            $num = $docBlock['from'] + $num + 1;
+                            $docBlocks[$docBlockKey]['comments'][$num] = $comment;
+                        }
                     }
                 }
 
@@ -418,7 +422,7 @@ class Builder
                     if (! array_key_exists($name, $this->tags))
                     {
                         // Log warning message
-                        $this->warning($file, $num, 'Unknown tag [@%s]', [$name]);
+                        $this->warning($file, $lineNum, 'Unknown tag [@%s]', [$name]);
 
                         // Go to next line
                         continue;
@@ -433,7 +437,7 @@ class Builder
                             // Log warning message
                             $message = 'Try to redefine [@%s] to [@%s]';
                             $data    =  [$docBlock['type'], $name];
-                            $this->warning($file, $num, $message, $data);
+                            $this->warning($file, $lineNum, $message, $data);
 
                             // Go to next line
                             continue;
@@ -465,7 +469,7 @@ class Builder
                         // Log warning message
                         $message = 'Malformed parameters for [@%s] expected [%s]';
                         $data    =  [$name, $this->tags[$name]];
-                        $this->warning($file, $num, $message, $data);
+                        $this->warning($file, $lineNum, $message, $data);
 
                         // Go to next line
                         continue;
@@ -474,6 +478,7 @@ class Builder
                     // Clean parameters found
                     array_shift($params);
                     $params = array_unique($params);
+                    $params = array_map('trim', $params);
 
                     // If too many parameters
                     if (! empty($params['_']))
@@ -481,7 +486,7 @@ class Builder
                         // Log warning message
                         $message = 'Too many parameters for [@%s] expected [%s]';
                         $data    =  [$name, $this->tags[$name]];
-                        $this->warning($file, $num, $message, $data);
+                        $this->warning($file, $lineNum, $message, $data);
                     }
 
                     // If multiple tag type
@@ -515,14 +520,14 @@ class Builder
              * No tags...
              */
 
-            // If single line comment found
-            if (strpos($line, '//') === 0)
+            // If single line comment found and not the first block
+            if (! empty($docBlocks) and strpos($line, '//') === 0)
             {
                 // Remove start comment chars
                 $line = trim(substr($line, 2));
 
                 // Add comment in last block found
-                $docBlocks[$docBlockKey-1]['comments'][$num + 1] = $line;
+                $docBlocks[$docBlockKey-1]['comments'][$lineNum + 1] = $line;
             }
         }
 
