@@ -112,15 +112,24 @@ class Builder
      * Build documentation.
      *
      * @method build
+     * @param array|null [$config=null]
      * @chainable
      */
-    public function build()
+    public function build($config = null)
     {
-        // If builder was not setup.
-        if ($this->config === null) {
+        // If $config provided.
+        if ($config !== null) {
+            // Setup configuration.
+            $this->setup($config);
+        }
+
+        // Else if builder was not setup.
+        else if ($this->config === null) {
             // Log and throw an error message.
             $this->console->error('Call Builder::setup() before calling Builder::build().');
         }
+
+        // Build...
 
         // Set method chainable.
         return $this;

@@ -35,11 +35,8 @@ try
     // Create builder instance.
     $builder = new \LADoc\Builder();
 
-    // Setup configuration.
-    $builder->setup(['inputPath' => '.']);
-
     // Build output.
-    $builder->build();
+    $builder->build(['inputPath' => '.']);
 
     // Print console output.
     echo "<pre>$builder->console</pre>";
