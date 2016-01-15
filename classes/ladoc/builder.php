@@ -92,12 +92,10 @@ class Builder
     public function setup($config = null)
     {
         // Initialize configuration.
-        try
-        {
+        try {
             $this->config = new Config($config);
         }
-        catch (Error $e)
-        {
+        catch (Error $e) {
             $this->console->error($e->getMessage());
         }
 
@@ -119,8 +117,7 @@ class Builder
     public function build()
     {
         // If builder was not setup.
-        if ($this->config === null)
-        {
+        if ($this->config === null) {
             // Log and throw an error message.
             $this->console->error('Call Builder::setup() before calling Builder::build().');
         }

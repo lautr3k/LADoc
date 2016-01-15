@@ -56,8 +56,7 @@ class Config
     public function get($key, $defaultValue = null)
     {
         // If item found.
-        if (array_key_exists($key, $this->config))
-        {
+        if (array_key_exists($key, $this->config)) {
             // Return item value;
             return $this->config[$key];
         }
@@ -77,8 +76,7 @@ class Config
      */
     public static function normalizePath($path)
     {
-        if (is_array($path))
-        {
+        if (is_array($path)) {
             return array_map('self::normalizePath', $path);
         }
 
@@ -97,8 +95,7 @@ class Config
     public function setPath($key, $path, $strict = true)
     {
         // If strict mode and path not found.
-        if ($strict and ! file_exists($path))
-        {
+        if ($strict and ! file_exists($path)) {
             // Throw an error.
             Error::raise('Path not found: [%s: "%s"].', [$key, $path]);
         }
@@ -118,8 +115,7 @@ class Config
     public function set($key, $value)
     {
         // Handle specials cases.
-        switch ($key)
-        {
+        switch ($key) {
             // Paths must exist.
             case 'inputPath':
             case 'outputPath':
@@ -141,8 +137,7 @@ class Config
      */
     public function merge($config)
     {
-        foreach($config as $key => $value)
-        {
+        foreach($config as $key => $value) {
             $this->set($key, $value);
         }
     }

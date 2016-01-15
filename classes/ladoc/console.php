@@ -27,8 +27,7 @@ class Console
      */
     public function getData($type = null)
     {
-        if ($type !== null)
-        {
+        if ($type !== null) {
             return $this->data[$type];
         }
 
@@ -47,15 +46,13 @@ class Console
         $data = [];
         $max  = max(array_map('strlen', array_keys($this->data)));
 
-        foreach($this->data as $type => $group)
-        {
+        foreach($this->data as $type => $group) {
             $type = str_pad($type, $max);
 
-            foreach($group as $microtime => $text)
-            {
+            foreach($group as $microtime => $text) {
                 $data[$microtime] = ucfirst($type) . ' >>> ' . $text;
-            };
-        };
+            }
+        }
 
         return $data;
     }
