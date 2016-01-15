@@ -53,7 +53,7 @@ class Config
      * @param  string $key
      * @param  mixed  [$defaultValue=null]
      */
-    public function get($key, $defaultValue)
+    public function get($key, $defaultValue = null)
     {
         // If item found.
         if (array_key_exists($key, $this->config))
@@ -100,7 +100,7 @@ class Config
         if ($strict and ! file_exists($path))
         {
             // Throw an error.
-            Error::raise('Path not found: "%s".', [$path]);
+            Error::raise('Path not found: [%s: "%s"].', [$key, $path]);
         }
 
         // Else set and return normalized absolute path.
