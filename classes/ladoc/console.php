@@ -53,7 +53,7 @@ class Console
 
             foreach($group as $microtime => $text)
             {
-                $data[$microtime] = ucfirst($type) . ' >>> ' . ucfirst($text);
+                $data[$microtime] = ucfirst($type) . ' >>> ' . $text;
             };
         };
 
