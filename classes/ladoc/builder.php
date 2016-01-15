@@ -20,6 +20,33 @@ namespace LADoc;
 class Builder
 {
     /**
+     * Version.
+     *
+     * @static
+     * @property version
+     * @type     string
+    */
+    static public $version = '1.0.0';
+
+    /**
+     * Name.
+     *
+     * @static
+     * @property name
+     * @type     string
+    */
+    static public $name = 'LADoc';
+
+    /**
+     * Description.
+     *
+     * @static
+     * @property description
+     * @type     string
+    */
+    static public $description = 'Language Agnostic Documentor';
+
+    /**
      * Console instance.
      *
      * @protected
@@ -46,6 +73,13 @@ class Builder
     {
         // Initialize console.
         $this->console = new Console();
+
+        // Write header message.
+        $this->console->info('%s - %s - v%s', [
+            self::$name,
+            self::$description,
+            self::$version
+        ]);
     }
 
     /**
@@ -67,10 +101,10 @@ class Builder
             $this->console->error($e->getMessage());
         }
 
-        // Write start message.
-        $this->console->info('Builder setup 1');
-        $this->console->warning('Oups!');
-        $this->console->info('Builder setup 2');
+        // Write setup message.
+        $this->console->info('---');
+        $this->console->info('inputPath  = %s.', [$this->config->get('inputPath')]);
+        $this->console->info('outputPath = %s.', [$this->config->get('outputPath')]);
 
         // Set method chainable.
         return $this;
@@ -80,17 +114,15 @@ class Builder
      * Build documentation.
      *
      * @method build
+     * @chainable
      */
     public function build()
     {
-        // Write start message.
-        $this->console->info('LADoc - Language Agnostic Documentor.');
-
         // If builder was not setup.
         if ($this->config === null)
         {
             // Log and throw an error message.
-            $this->console->error('Please call Builder::setup() before calling Builder::build().');
+            $this->console->error('Call Builder::setup() before calling Builder::build().');
         }
 
         // Set method chainable.
