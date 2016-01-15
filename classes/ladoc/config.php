@@ -43,12 +43,7 @@ class Config
      */
     public function __construct($config = null)
     {
-        $config = [
-            'bob' => 'hahaha',
-            'inputPath' => './'
-        ];
-
-        $config and $this->merge(array_merge(self::$defaults, $config));
+        $this->merge(array_merge(self::$defaults, $config ?: []));
     }
 
     /**
