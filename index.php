@@ -15,7 +15,6 @@ define('CLASSES_PATH', ROOT_PATH . '/classes');
  * Try to load a class based on his name.
  *
  * @func  loadClass
- * @event spl_autoload Called on class requested.
  * @param string $className
  */
 function loadClass($className)
@@ -38,20 +37,14 @@ try
 
     // Build output.
     $builder->build();
+
+    // Print console output.
+    echo "<pre>$builder->console</pre>";
 }
 
 // If an error occurred.
 catch (\LADoc\Error $e)
 {
-    // Get message text.
-    $message = $e->getMessage();
-
-    // Create HTML message.
-    $output  = "<html lang=\"en\"><head><meta charset=\"utf-8\">";
-    $output .= "<title>Error !</title></head><body>";
-    $output .= "<h1>Oups !</h1><hr /><pre>$message</pre>";
-    $output .= "</body></html>";
-
-    // Print message.
-    echo $output;
+    // Print console output.
+    echo "<pre>$builder->console</pre>";
 }
