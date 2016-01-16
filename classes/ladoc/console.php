@@ -19,6 +19,24 @@ class Console
     protected $data = [];
 
     /**
+     * Message add before next write.
+     *
+     * @protected
+     * @property prependOnNextWrite
+     * @type     string|null
+    */
+    protected $prependOnNextWrite = null;
+
+    /**
+     * Message add after next write.
+     *
+     * @protected
+     * @property prependOnNextWrite
+     * @type     string|null
+    */
+    protected $appendOnNextWrite = null;
+
+    /**
      * Return a collection of all data prefixed by type or a group of data.
      *
      * @method getdata
@@ -48,7 +66,6 @@ class Console
 
         foreach($this->data as $type => $group) {
             $type = str_pad($type, $max);
-
             foreach($group as $microtime => $text) {
                 $data[$microtime] = ucfirst($type) . ' >>> ' . $text;
             }
@@ -71,7 +88,6 @@ class Console
     /**
      * Write a (formated) text.
      *
-     * @protected
      * @method log
      * @param  string  $type
      * @param  string  $text
@@ -79,13 +95,50 @@ class Console
      */
     public function write($type, $text, $data = null)
     {
+        if ($this->prependOnNextWrite !== null) {
+            $this->data[$type][microtime()] = $this->prependOnNextWrite;
+            $this->prependOnNextWrite = null;
+        }
+
         $this->data[$type][microtime()] = vsprintf($text, $data ?: []);
+
+        if ($this->appendOnNextWrite !== null) {
+            $this->data[$type][microtime()] = $this->appendOnNextWrite;
+            $this->appendOnNextWrite = null;
+        }
     }
 
     /**
-     * Log info text.
+     * Prepend a spacer before next write.
      *
-     * @protected
+     * @method spacer
+     * @param  string  [$char='-']
+     * @param  integer [$length=80]
+     */
+    public function spacer($char = '-', $length = 3)
+    {
+        $this->prependOnNextWrite = str_repeat('-', $length);
+    }
+
+    /**
+     * Prepend a title before next write.
+     *
+     * @method title
+     * @param  string $title
+     */
+    public function title($title, $data = null)
+    {
+        $title  = vsprintf($title, $data ?: []);
+        $length = strlen($title) + 4;
+        $line   = str_repeat('-', $length);
+        $this->prependOnNextWrite = $line;
+        $this->appendOnNextWrite  = $line;
+        $this->write('', "| $title |");
+    }
+
+    /**
+     * Log info message.
+     *
      * @method info
      * @param  string $text
      * @param  array  [$data=null]
@@ -96,9 +149,8 @@ class Console
     }
 
     /**
-     * Log warning text.
+     * Log warning message.
      *
-     * @protected
      * @method warning
      * @param  string $text
      * @param  array  [$data=null]
@@ -109,9 +161,8 @@ class Console
     }
 
     /**
-     * Log and throw error text.
+     * Log and throw error message.
      *
-     * @protected
      * @method error
      * @param  string $text
      * @param  array  [$data=null]

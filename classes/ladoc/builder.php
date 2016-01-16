@@ -75,11 +75,8 @@ class Builder
         $this->console = new Console();
 
         // Write header message.
-        $this->console->info('%s - %s - v%s', [
-            self::$name,
-            self::$description,
-            self::$version
-        ]);
+        $this->console->title('%s - %s', [self::$name, self::$description]);
+        $this->console->info('version: %s.', [self::$version]);
     }
 
     /**
@@ -91,6 +88,9 @@ class Builder
      */
     public function setup($config = null)
     {
+        // Write setup message.
+        $this->console->title('Setup configuration');
+
         // Initialize configuration.
         try {
             $this->config = new Config($config);
@@ -99,10 +99,9 @@ class Builder
             $this->console->error($e->getMessage());
         }
 
-        // Write setup message.
-        $this->console->info('---');
-        $this->console->info('inputPath  = %s.', [$this->config->get('inputPath')]);
-        $this->console->info('outputPath = %s.', [$this->config->get('outputPath')]);
+        // Write some setup informations.
+        $this->console->info('inputPath : %s.', [$this->config->get('inputPath')]);
+        $this->console->info('outputPath: %s.', [$this->config->get('outputPath')]);
 
         // Set method chainable.
         return $this;
