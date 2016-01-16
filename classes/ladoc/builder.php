@@ -12,123 +12,85 @@
  */
 namespace LADoc;
 
+use \LADoc;
+use \LADoc\Builder\Files;
+
 /**
  * Documentation builder.
  *
  * @class Builder
+ * @use   \LADoc
+ * @use   Builder\Files
  */
 class Builder
 {
     /**
-     * Version.
-     *
-     * @static
-     * @property version
-     * @type     string
-    */
-    static public $version = '1.0.0';
-
-    /**
-     * Name.
-     *
-     * @static
-     * @property name
-     * @type     string
-    */
-    static public $name = 'LADoc';
-
-    /**
-     * Description.
-     *
-     * @static
-     * @property description
-     * @type     string
-    */
-    static public $description = 'Language Agnostic Documentor';
-
-    /**
-     * Console instance.
+     * Front controller instance.
      *
      * @protected
-     * @property console
-     * @type     Console
+     * @property frontController
+     * @type     \LADoc
     */
-    public $console = null;
+    protected $frontController = null;
 
     /**
-     * Config instance.
+     * Files instance.
      *
      * @protected
-     * @property config
-     * @type     Config
+     * @property files
+     * @type     Builder\Files
     */
-    public $config = null;
+    protected $files = null;
 
     /**
      * Class constructor.
      *
      * @constructor
+     * @param \LADoc $frontController
      */
-    public function __construct()
+    public function __construct(LADoc $frontController)
     {
-        // Initialize console.
-        $this->console = new Console();
+        // Set front controller instance.
+        $this->frontController = $frontController;
 
-        // Write header message.
-        $this->console->title('%s - %s', [self::$name, self::$description]);
-        $this->console->info('version: %s.', [self::$version]);
+        // Create files instance.
+        $this->files = new Files($this);
     }
 
     /**
-     * Setup the builder.
+     * Get the front controller instance.
      *
-     * @method setup
-     * @param array|null [$config=null]
-     * @chainable
+     * @method getFrontController
+     * @return \LADoc
      */
-    public function setup($config = null)
+    public function getFrontController()
     {
-        // Write setup message.
-        $this->console->title('Setup configuration');
+        return $this->frontController;
+    }
 
-        // Initialize configuration.
-        try {
-            $this->config = new Config($config);
-        }
-        catch (Error $e) {
-            $this->console->error($e->getMessage());
-        }
-
-        // Write some setup informations.
-        $this->console->info('inputPath : %s.', [$this->config->get('inputPath')]);
-        $this->console->info('outputPath: %s.', [$this->config->get('outputPath')]);
-
-        // Set method chainable.
-        return $this;
+    /**
+     * Get the files instance.
+     *
+     * @method getFiles
+     * @return Builder\Files
+     */
+    public function getFiles()
+    {
+        return $this->files;
     }
 
     /**
      * Build documentation.
      *
      * @method build
-     * @param array|null [$config=null]
      * @chainable
      */
-    public function build($config = null)
+    public function build()
     {
-        // If $config provided.
-        if ($config !== null) {
-            // Setup configuration.
-            $this->setup($config);
-        }
+        // Scan input directory.
+        $this->files->scan();
 
-        // Else if builder was not setup.
-        else if ($this->config === null) {
-            // Log and throw an error message.
-            $this->console->error('Call Builder::setup() before calling Builder::build().');
-        }
-
-        // Build...
+        var_dump($this->files->getTree());
 
         // Set method chainable.
         return $this;

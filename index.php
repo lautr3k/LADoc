@@ -1,50 +1,44 @@
 <?php
 /**
- * Initialize and start build process.
+ * LADoc - Front controller.
  *
  * @bootstrap LADoc
  */
 
-// @const string ROOT_PATH Define absolute root path (force unix style).
-define('ROOT_PATH', str_replace('\\', '/', __DIR__));
+// @const string LADOC_ROOT_PATH Define the absolute root path (force unix style).
+define('LADOC_ROOT_PATH', str_replace('\\', '/', __DIR__));
 
-// @const string CLASSES_PATH Define absolute classes path.
-define('CLASSES_PATH', ROOT_PATH . '/classes');
+// @const string LADOC_CLASSES_PATH Define the absolute classes path (unix style).
+define('LADOC_CLASSES_PATH', LADOC_ROOT_PATH . '/classes');
 
 /**
- * Try to load a class based on his name.
- *
- * @func  loadClass
- * @param string $className
+ * @function loadClass Try to load a class based on his name.
+ * @param    string    $className
  */
 function loadClass($className)
 {
-    // Set partial class path based on his name.
+    // On cases sensitive filesystem all classes paths must be lowercased.
     $classPath = str_replace('\\', '/', strtolower($className));
-
-    // Concact and try to load class file.
-    require CLASSES_PATH . '/' . $classPath . '.php';
+    $classPath = LADOC_CLASSES_PATH . '/' . $className . '.php';
+    return is_file($classPath) and require $classPath;
 }
 
-// Register autoload event callback.
+// Register {loadClass} as autoload callback function.
 spl_autoload_register('loadClass');
 
-// Try to build documentation.
+// Try to load and run the front controller .
 try
 {
-    // Create builder instance.
-    $builder = new \LADoc\Builder();
+    // Create instance.
+    $ladoc = new LADoc();
 
-    // Build output.
-    $builder->build(['inputPath' => '.']);
+    // Setup configuration.
+    $ladoc->setup(['inputPath' => '.']);
 
-    // Print console output.
-    echo "<pre>$builder->console</pre>";
+    // Run build action.
+    $ladoc->run('build');
 }
+catch (\LADoc\Error $e) {}
 
-// If an error occurred.
-catch (\LADoc\Error $e)
-{
-    // Print console output.
-    echo "<pre>$builder->console</pre>";
-}
+// Print output.
+echo '<pre>' . $ladoc->getConsole() . '</pre>';

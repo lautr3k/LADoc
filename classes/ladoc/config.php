@@ -13,11 +13,10 @@ class Config
      * Defaults configuration.
      *
      * @static
-     * @protected
      * @property config
      * @type     array
     */
-    static protected $defaults =
+    static $defaults =
     [
         'inputPath'    => '.',
         'outputPath'   => './docs',
@@ -36,7 +35,7 @@ class Config
     protected $config = [];
 
     /**
-     * Create and initialize main configuration.
+     * Create and initialize configuration.
      *
      * @constructor
      * @param array|null [$config=null]
