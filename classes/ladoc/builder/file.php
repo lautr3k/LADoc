@@ -14,64 +14,101 @@ class File
 {
     /**
      * @protected
-     * @property path
-     * @type     string
-    */
-    protected $path = null;
-
-    /**
-     * @protected
-     * @property parent
-     * @type     File
-    */
-    protected $parent = null;
-
-    /**
-     * @protected
      * @property name
      * @type     string
     */
     protected $name = null;
 
     /**
+     * @protected
+     * @property rootPath
+     * @type     string
+    */
+    protected $rootPath = null;
+
+    /**
+     * @protected
+     * @property parentPath
+     * @type     string
+    */
+    protected $parentPath = null;
+
+    /**
+     * @protected
+     * @property absolutePath
+     * @type     string
+    */
+    protected $absolutePath = null;
+
+    /**
+     * @protected
+     * @property relativePath
+     * @type     string
+    */
+    protected $relativePath = null;
+
+    /**
      * Class constructor.
      *
      * @constructor
-     * @param string $parent
-     * @param string $name
+     * @param string $rootPath
+     * @param string $parentPath
+     * @param string $filename
      */
-    public function __construct($path, $name)
+    public function __construct($rootPath, $parentPath, $filename)
     {
-        // Set file path.
-        $this->path = $path . '/' . $name;
-
-        // Set parent path.
-        $this->parent = $path;
-
         // Set file name.
-        $this->name = $name;
+        $this->name = $filename;
+
+        // Set file paths.
+        $this->rootPath     = $rootPath;
+        $this->parentPath   = $parentPath;
+        $this->absolutePath = $parentPath . '/' . $filename;
+        $this->relativePath = str_replace("$rootPath/", '', $this->absolutePath);
     }
 
     /**
-     * Get file path.
+     * Get root path.
      *
-     * @method getPath
+     * @method getRootPath
      * @return string
      */
-    public function getPath()
+    public function getRootPath()
     {
-        return $this->path;
+        return $this->rootPath;
     }
 
     /**
      * Get parent path.
      *
-     * @method getParent
+     * @method getParentPath
      * @return string
      */
-    public function getParent()
+    public function getParentPath()
     {
-        return $this->parent;
+        return $this->parentPath;
+    }
+
+    /**
+     * Get absolute path.
+     *
+     * @method getAbsolutePath
+     * @return string
+     */
+    public function getAbsolutePath()
+    {
+        return $this->absolutePath;
+    }
+
+    /**
+     * Get relative path (from root path).
+     *
+     * @method getRelativePath
+     * @return string
+     */
+    public function getRelativePath()
+    {
+        return $this->relativePath;
     }
 
     /**
@@ -93,23 +130,25 @@ class File
      */
     public function isDirectory()
     {
-        return is_dir($this->path);
+        return is_dir($this->absolutePath);
     }
 
     /**
-     * Test if file path matches almost one pattern.
+     * Test if property matches almost one pattern.
      *
+     * @protected
      * @method match
+     * @param  string|array $patterns
      * @param  string|array $patterns
      * @return boolean
      */
-    public function match($patterns)
+    protected function match($property, $patterns)
     {
         // For each pattern.
         foreach ((array) $patterns as $pattern)
         {
             // If pattern matches.
-            if (fnmatch($pattern, $this->name))
+            if (fnmatch($pattern, $this->$property))
             {
                 // Return TRUE.
                 return true;
@@ -119,5 +158,29 @@ class File
 
         // If nothing matches, return FALSE.
         return false;
+    }
+
+    /**
+     * Test if file name matches almost one pattern.
+     *
+     * @method nameMatch
+     * @param  string|array $patterns
+     * @return boolean
+     */
+    public function nameMatch($patterns)
+    {
+        return $this->match('name', $patterns);
+    }
+
+    /**
+     * Test if file path matches almost one pattern.
+     *
+     * @method pathMatch
+     * @param  string|array $patterns
+     * @return boolean
+     */
+    public function pathMatch($patterns)
+    {
+        return $this->match('absolutePath', $patterns);
     }
 }

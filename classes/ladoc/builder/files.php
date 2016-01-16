@@ -22,6 +22,15 @@ class Files
     protected $builder = null;
 
     /**
+     * Absolute path.
+     *
+     * @protected
+     * @property path
+     * @type     string
+    */
+    protected $path = null;
+
+    /**
      * Flat files tree.
      *
      * @protected
@@ -40,6 +49,20 @@ class Files
     {
         // Set builder instance.
         $this->builder = $builder;
+
+        // Set root path from configuration.
+        $this->path = $builder->getFrontController()->getConfig()->get('inputPath');
+    }
+
+    /**
+     * Get the root path.
+     *
+     * @method getPath
+     * @return string
+     */
+    public function getPath()
+    {
+        return $this->path;
     }
 
     /**
@@ -99,15 +122,15 @@ class Files
             // Reset files tree.
             $this->tree = [];
 
-            // Set default path from configuration.
-            $path = $config->get('inputPath');
+            // Set root path as first path to scan.
+            $path = $this->path;
         }
 
         // Log scan start message.
         $console->info('Scan ----> %s', [$path]);
 
         // For each file/directory
-        foreach(scandir($path) as $file)
+        foreach(scandir($path, SCANDIR_SORT_NONE) as $file)
         {
             // Skip curent and parent directory.
             if (in_array($file, array('.', '..')))
@@ -116,14 +139,14 @@ class Files
             }
 
             // Create {File} instance.
-            $file = new File($path, $file);
+            $file = new File($this->path, $path, $file);
 
             // If matches exclude pattern.
-            if ($file->match($config->get('excludeFiles'))
-            or  $file->match($config->get('excludePaths')))
+            if ($file->nameMatch($config->get('excludeFiles'))
+            or  $file->pathMatch($config->get('excludePaths')))
             {
                 // Log exclude file message.
-                $console->info('Exclude -> %s', [$file->getPath()]);
+                $console->info('Exclude -> %s', [$file->getAbsolutePath()]);
 
                 // Go to next item.
                 continue;
@@ -133,17 +156,17 @@ class Files
             if ($file->isDirectory())
             {
                 // Merge sub-files matching patterns with current tree.
-                $this->scan($file->getPath());
+                $this->scan($file->getAbsolutePath());
 
                 // Go to next item.
                 continue;
             }
 
-            // If file and matches one pattern.
-            if ($file->match($config->get('includeFiles')))
+            // If file type and matches one pattern.
+            if ($file->nameMatch($config->get('includeFiles')))
             {
                 // Log file found message.
-                $console->info('Found ---> %s', [$file->getPath()]);
+                $console->info('Found ---> %s', [$file->getAbsolutePath()]);
 
                 // Add file to tree.
                 $this->tree[] = $file;
