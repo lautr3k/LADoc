@@ -14,6 +14,7 @@ define('LADOC_CLASSES_PATH', LADOC_ROOT_PATH . '/classes');
 /**
  * @function loadClass Try to load a class based on his name.
  * @param    string    $className
+ * @return   boolean
  */
 function loadClass($className)
 {
@@ -23,10 +24,10 @@ function loadClass($className)
     return is_file($classPath) and require $classPath;
 }
 
-// Register {loadClass} as autoload callback function.
+// Register {@function loadClass} as autoload callback.
 spl_autoload_register('loadClass');
 
-// Try to load and run the front controller .
+// Try to load and run the {@class LADoc front controller}.
 try
 {
     // Create instance.
@@ -41,4 +42,4 @@ try
 catch (\LADoc\Error $e) {}
 
 // Print output.
-echo '<pre>' . $ladoc->getConsole() . '</pre>';
+echo '<pre>' . $ladoc->getOutput() . '</pre>';
