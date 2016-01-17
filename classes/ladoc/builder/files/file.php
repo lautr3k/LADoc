@@ -1,6 +1,6 @@
 <?php
-// @namespace LADoc\Builder
-namespace LADoc\Builder;
+// @namespace LADoc\Builder\Files
+namespace LADoc\Builder\Files;
 
 use \LADoc\Builder;
 

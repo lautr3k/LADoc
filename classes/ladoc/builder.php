@@ -13,14 +13,14 @@
 namespace LADoc;
 
 use \LADoc;
-use \LADoc\Builder\Files;
+use \LADoc\Builder\Files\Tree;
 
 /**
  * Documentation builder.
  *
  * @class Builder
  * @use   \LADoc
- * @use   Builder\Files
+ * @use   Builder\Files\Tree
  */
 class Builder
 {
@@ -37,10 +37,10 @@ class Builder
      * Files instance.
      *
      * @protected
-     * @property files
-     * @type     Builder\Files
+     * @property filesTree
+     * @type     Builder\Files\Tree
     */
-    protected $files = null;
+    protected $filesTree = null;
 
     /**
      * Output instance.
@@ -71,17 +71,17 @@ class Builder
      */
     public function __construct(LADoc $frontController)
     {
-        // Set front controller instance.
+        // Set {@class \LADoc front controller} instance.
         $this->frontController = $frontController;
 
-        // Set output instance.
+        // Set {@class \LADoc\Console console} instance.
         $this->output = $frontController->getOutput();
 
-        // Set config instance.
+        // Set {@class \LADoc\Config config} instance.
         $this->config = $frontController->getConfig();
 
-        // Create files instance.
-        $this->files = new Files($this->config);
+        // Create {@class \LADoc\Files\Tree file tree} instance.
+        $this->filesTree = new Tree($this->config);
     }
 
     /**
@@ -99,11 +99,11 @@ class Builder
      * Get the files instance.
      *
      * @method getFiles
-     * @return Builder\Files
+     * @return Builder\Files\Tree
      */
     public function getFiles()
     {
-        return $this->files;
+        return $this->filesTree;
     }
 
     /**
@@ -123,12 +123,10 @@ class Builder
         $this->output->writeTitle('Build start at %s (%s)', [$time, $date]);
 
         // Scan input directory.
-        $this->files->scan();
+        $this->filesTree->scan();
 
-        // Get collections
-        $includedFiles       = $this->files->getCollection('includedFiles');
-        $excludedFiles       = $this->files->getCollection('excludedFiles');
-        $excludedDirectories = $this->files->getCollection('excludedDirectories');
+        // Get files found.
+        $includedFiles = $this->filesTree->getFiles('includedFiles');
 
         // If no files found.
         if (empty($includedFiles)) {
@@ -142,11 +140,15 @@ class Builder
         $this->output->writeVerbose(array_values($includedFiles));
         $this->output->writeSpacer();
 
+        $excludedFiles = $this->filesTree->getFiles('excludedFiles');
+
         if (! empty($excludedFiles)) {
             $this->output->writeTitle('Excluded files (%s)', count($excludedFiles));
             $this->output->writeVerbose(array_values($excludedFiles));
             $this->output->writeSpacer();
         }
+
+        $excludedDirectories = $this->filesTree->getFiles('excludedDirectories');
 
         if (! empty($excludedDirectories)) {
             $this->output->writeTitle('Excluded directories (%s)', count($excludedDirectories));

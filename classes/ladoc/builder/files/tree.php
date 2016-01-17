@@ -1,16 +1,16 @@
 <?php
-// @namespace LADoc\Builder
-namespace LADoc\Builder;
+// @namespace LADoc\Builder\Files
+namespace LADoc\Builder\Files;
 
 use \LADoc\Config;
 
 /**
- * Files manager.
+ * Files tree manager.
  *
- * @class Files
+ * @class Tree
  * @use   \LADoc\Config
  */
-class Files
+class Tree
 {
     /**
      * Config instance.
@@ -31,13 +31,13 @@ class Files
     protected $path = null;
 
     /**
-     * Files collection.
+     * Files tree.
      *
      * @protected
-     * @property collection
+     * @property files
      * @type     array
     */
-    protected $collection = [];
+    protected $files = [];
 
     /**
      * Class constructor.
@@ -66,25 +66,17 @@ class Files
     }
 
     /**
-     * Get files collection.
+     * Return a group of files or all files indexed by group.
      *
-     * @method getCollection
-     * @param  string $name
-     * @return array  Collection of {File}.
+     * __Group names:__ `includedFiles`, `excludedFiles` or `excludedDirectories`.
+     *
+     * @method getFiles
+     * @param  string $groupName
+     * @return array
      */
-    public function getCollection($name = null)
+    public function getFiles($groupName = null)
     {
-        if ($name)
-        {
-            //ksort($this->collection[$name]);
-            return $this->collection[$name];
-        }
-
-        /*array_walk($this->collection, function(&$files) {
-            ksort($files);
-        });*/
-
-        return $this->collection;
+        return $groupName ? $this->files[$groupName] : $this->files;
     }
 
     /**
@@ -126,7 +118,7 @@ class Files
         if ($path === null)
         {
             // Reset files tree.
-            $this->collection = [];
+            $this->files = [];
 
             // Set root path as first path to scan.
             $path = $this->path;
@@ -154,7 +146,7 @@ class Files
             if ($file->nameMatch($this->config->get('excludeFiles'))
             or  $file->pathMatch($this->config->get('excludePaths')))
             {
-                // Add file to excluded collection.
+                // Add file to excluded files.
                 if ($file->isDirectory()) {
                     $excludedDirectories[$file->getRelativePath()] = $file;
                 }
@@ -179,7 +171,7 @@ class Files
             // If file type and matches one pattern.
             if ($file->nameMatch($this->config->get('includeFiles')))
             {
-                // Add file to found collection.
+                // Add file to found files.
                 $includedFiles[$file->getRelativePath()] = $file;
             }
         }
@@ -188,7 +180,7 @@ class Files
         ksort($excludedDirectories, SORT_NATURAL | SORT_FLAG_CASE);
         ksort($includedFiles      , SORT_NATURAL | SORT_FLAG_CASE);
 
-        return $this->collection = array_merge_recursive(compact(
+        return $this->files = array_merge_recursive(compact(
             'excludedFiles', 'excludedDirectories', 'includedFiles'
         ), $files);
     }
