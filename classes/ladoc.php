@@ -113,9 +113,12 @@ class LADoc
         // Set output messages verbosity.
         $this->output->setVerbosity($this->config->get('verbosity'));
 
-        // Write some setup informations.
+        // Write configuration informations.
         $this->output->writeVerbose($this->config->getAll());
         $this->output->writeSpacer();
+
+        // Initialize builder.
+        $this->builder = new Builder($this);
 
         // Set method chainable.
         return $this;
@@ -130,11 +133,24 @@ class LADoc
      */
     public function run($action = 'build')
     {
-        // Write run message.
-        $this->output->writeTitle(str_repeat('haaa ', 100));
-        $this->output->writeTitle('hshshshs '. str_repeat('1', 80) . ' dfsdf dfs fsdfsd fasdfsdfsdf');
-        $this->output->writeVerbose('hohohoho');
-        $this->output->writeSpacer();
+        // If configuration was not setup.
+        if ($this->config === null) {
+            // Log and throw an error message.
+            $this->output->writeAndThrowError('Call LADoc::setup() before calling LADoc::run().');
+        }
+
+        // Run action:
+        switch ($action) {
+            // On build:
+            case 'build':
+                // Run the builder.
+                $this->builder->build();
+                break;
+            // On unknown:
+            default:
+                // Log and throw an error message.
+                $this->output->writeAndThrowError('Unknown action: %s', [$action]);
+        }
 
         // Set method chainable.
         return $this;
