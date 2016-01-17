@@ -7,105 +7,69 @@
  * @source    https://github.com/lautr3k/LADoc
  * @copyright 2016 © Onl'Fait (http://www.onlfait.ch)
  * @author    Sébastien Mischler (skarab) <sebastien@onlfait.ch>
- * @class     LADoc         19
- * @use       LADoc\Console 15
- * @use       LADoc\Config  16
- * @use       LADoc\Builder 17
+ * @class     LADoc         21
+ * @use       LADoc\Output  16
+ * @use       LADoc\Config  17
+ * @use       LADoc\Builder 18
+ * @use       LADoc\Error   19
  */
-use LADoc\Console;
+use LADoc\Output;
 use LADoc\Config;
 use LADoc\Builder;
+use LADoc\Error;
 
 class LADoc
 {
-    /**
-     * Name.
-     *
-     * @static
-     * @protected
-     * @property name
-     * @type     string
-    */
+    // @static @protected @property string name
     static protected $name = 'LADoc';
 
-    /**
-     * Version.
-     *
-     * @static
-     * @protected
-     * @property version
-     * @type     string
-    */
+    // @static @protected @property string version
     static protected $version = '1.0.0';
 
-    /**
-     * Description.
-     *
-     * @static
-     * @protected
-     * @property description
-     * @type     string
-    */
+    // @static @protected @property string description
     static protected $description = 'Language Agnostic Documentor';
 
-    /**
-     * Console instance.
-     *
-     * @protected
-     * @property console
-     * @type     \LADoc\Console
-    */
-    protected $console = null;
+    // @protected @property LADoc\Output output
+    protected $output = null;
 
-    /**
-     * Config instance.
-     *
-     * @protected
-     * @property config
-     * @type     \LADoc\Config
-    */
+    // @protected @property LADoc\Config config
     protected $config = null;
 
-    /**
-     * Builder instance.
-     *
-     * @protected
-     * @property builder
-     * @type     \LADoc\Builder
-    */
+    // @protected @property LADoc\Builder builder
     protected $builder = null;
 
     /**
-     * Class constructor.
+     * Initialize the front controller.
      *
      * @constructor
      */
     public function __construct()
     {
-        // Initialize console.
-        $this->console = new Console();
+        // Create {@class LADoc\Output output} instance.
+        $this->output = new Output();
 
-        // Write header message.
-        $this->console->title('%s - %s', [self::$name, self::$description]);
-        $this->console->info('version: %s.', [self::$version]);
+        // Write an header message in the output.
+        $this->output->writeTitle('%s - %s', [self::$name, self::$description]);
+        $this->output->writeInfo('version: %s.', [self::$version]);
+        $this->output->writeSpacer();
     }
 
     /**
-     * Get the console instance.
+     * Get the output instance.
      *
-     * @method getConsole
-     * @return \LADoc\Console
+     * @method getOutput
+     * @return LADoc\Output
      */
-    public function getConsole()
+    public function getOutput()
     {
-        return $this->console;
+        return $this->output;
     }
 
     /**
-     * Get the console instance.
+     * Get the config instance.
      *
      * @method getConfig
-     * @return \LADoc\Config
+     * @return LADoc\Config
      */
     public function getConfig()
     {
@@ -116,7 +80,7 @@ class LADoc
      * Get the builder instance.
      *
      * @method getBuilder
-     * @return \LADoc\Builder
+     * @return LADoc\Builder
      */
     public function getBuilder()
     {
@@ -128,27 +92,30 @@ class LADoc
      *
      * @method setup
      * @param array|null [$config=null]
+     * @throw Builder\Error
      * @chainable
      */
     public function setup($config = null)
     {
         // Write setup message.
-        $this->console->title('Setup: configuration');
+        $this->output->writeTitle('Configuration');
 
         // Initialize configuration.
         try {
             $this->config = new Config($config);
         }
+        // If an error is reaised.
         catch (Error $e) {
-            $this->console->error($e->getMessage());
+            // Log and re-throw the error.
+            $this->output->writeAndThrowError($e->getMessage());
         }
 
-        // Write some setup informations.
-        $this->console->info('inputPath : %s.', [$this->config->get('inputPath')]);
-        $this->console->info('outputPath: %s.', [$this->config->get('outputPath')]);
+        // Set output messages verbosity.
+        $this->output->setVerbosity($this->config->get('verbosity'));
 
-        // Initialize builder.
-        $this->builder = new Builder($this);
+        // Write some setup informations.
+        $this->output->writeVerbose($this->config->getAll());
+        $this->output->writeSpacer();
 
         // Set method chainable.
         return $this;
@@ -163,27 +130,11 @@ class LADoc
      */
     public function run($action = 'build')
     {
-        // If configuration was not setup.
-        if ($this->config === null) {
-            // Log and throw an error message.
-            $this->console->error('Call LADoc::setup() before calling LADoc::run().');
-        }
-
         // Write run message.
-        $this->console->title('Run: %s', [$action]);
-
-        // Run action:
-        switch ($action) {
-            // If build:
-            case 'build':
-                // Run the builder.
-                $this->builder->build();
-                break;
-            // If unknown:
-            default:
-                // Log and throw an error message.
-                $this->console->error('Unknown action: %s', [$action]);
-        }
+        $this->output->writeTitle(str_repeat('haaa ', 100));
+        $this->output->writeTitle('hshshshs '. str_repeat('1', 80) . ' dfsdf dfs fsdfsd fasdfsdfsdf');
+        $this->output->writeVerbose('hohohoho');
+        $this->output->writeSpacer();
 
         // Set method chainable.
         return $this;
