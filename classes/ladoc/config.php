@@ -21,8 +21,9 @@ class Config
         'inputPath'    => '.',
         'outputPath'   => './docs',
         'includeFiles' => ['*.php', '*.md'],
-        'excludeFiles' => ['.git', '*Copie.php'],
-        'excludePaths' => ['./docs', './cache']
+        'excludeFiles' => ['.git', '*Copie*'],
+        'excludePaths' => ['./docs', './cache'],
+        'verbosity'    => 'title|spacer|info|verbose|warning|error'
     ];
 
     /**
@@ -46,11 +47,23 @@ class Config
     }
 
     /**
+     * Get all config items.
+     *
+     * @method getAll
+     * @return array
+     */
+    public function getAll()
+    {
+        return $this->config;
+    }
+
+    /**
      * Get config item.
      *
      * @method get
      * @param  string $key
      * @param  mixed  [$defaultValue=null]
+     * @return mixed
      */
     public function get($key, $defaultValue = null)
     {
