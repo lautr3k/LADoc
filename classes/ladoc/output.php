@@ -31,15 +31,6 @@ class Output
     protected $prependOnNextWrite = null;
 
     /**
-     * Message add after next write.
-     *
-     * @protected
-     * @property prependOnNextWrite
-     * @type     string|null
-    */
-    protected $appendOnNextWrite = null;
-
-    /**
      * Set output verbosity.
      *
      * @method setVerbosity
@@ -79,6 +70,18 @@ class Output
     }
 
     /**
+     * Return if type must be diplayed.
+     *
+     * @method mustDisplay
+     * @param  string $type
+     * @return boolean
+     */
+    public function mustDisplay($type)
+    {
+        return $this->verbosity and in_array($type, $this->verbosity);
+    }
+
+    /**
      * Return rendered buffer.
      *
      * @method render
@@ -90,7 +93,7 @@ class Output
         $buffer = $this->buffer;
 
         foreach ($buffer as $type => $lines) {
-            if ($this->verbosity and ! in_array($type, $this->verbosity)) {
+            if (! $this->mustDisplay($type)) {
                 continue;
             }
             foreach ($lines as $microtime => $line) {
@@ -124,6 +127,20 @@ class Output
     }
 
     /**
+     * Return encoded (printable) data.
+     *
+     * @method encodeData
+     * @param  array $data
+     */
+    static public function encodeData($data)
+    {
+        if (is_array($data)) {
+            $data = json_encode($data, JSON_UNESCAPED_SLASHES);
+        }
+        return $data;
+    }
+
+    /**
      * Write (formated) message(s).
      *
      * @method write
@@ -143,19 +160,15 @@ class Output
             $texts = $this->prependOnNextWrite;
             $this->prependOnNextWrite = null;
             foreach ($texts as $value) {
-                $this->write($value[0], $value[1]);
+                $this->write($type, $value);
             }
         }
 
         foreach ((array) $text as $key => $text) {
-            if (is_array($text)) {
-                $text = json_encode($text, JSON_UNESCAPED_SLASHES);
-            }
+            $text = $this->encodeData($text);
 
             if (is_array($data)) {
-                $data = array_map(function($value) {
-                    return json_encode($value, JSON_UNESCAPED_SLASHES);
-                }, $data);
+                $data = array_map([$this, 'encodeData'], $data);
             }
 
             if ($max > 0 and is_string($key)) {
@@ -164,14 +177,18 @@ class Output
 
             $this->buffer[$type][microtime()] = vsprintf($text, $data ?: []);
         }
+    }
 
-        if ($this->appendOnNextWrite !== null) {
-            $texts = $this->appendOnNextWrite;
-            $this->appendOnNextWrite = null;
-            foreach ($texts as $value) {
-                $this->write($value[0], $value[1]);
-            }
-        }
+    /**
+     * Write a spacer.
+     *
+     * @method writeSpacer
+     * @param  integer [$length=0]
+     * @param  string  [$char='-']
+     */
+    public function writeSpacer($length = 0, $char = '-')
+    {
+        $this->prependOnNextWrite[] = str_repeat($char, $length);
     }
 
     /**
@@ -184,26 +201,15 @@ class Output
     public function writeTitle($title, $data = null)
     {
         $title = vsprintf($title, $data ?: []);
-        $line  = str_repeat('-', 80);
+        $title = wordwrap($title, 76, "\n", true);
+        $lines = explode("\n", $title);
 
-        $this->prependOnNextWrite[] = ['title', $line];
-        foreach (explode("\n", wordwrap($title, 76, "\n", true)) as $title) {
+        $this->writeSpacer(80);
+        foreach ($lines as $title) {
             $title = str_pad($title, 76);
-            $this->prependOnNextWrite[] = ['title', "| $title |"];
+            $this->prependOnNextWrite[] = "| $title |";
         }
-        $this->prependOnNextWrite[] = ['title', $line];
-    }
-
-    /**
-     * Write a spacer.
-     *
-     * @method writeSpacer
-     * @param  integer [$length=0]
-     * @param  string  [$char='-']
-     */
-    public function writeSpacer($length = 0, $char = '-')
-    {
-        $this->prependOnNextWrite[] = ['spacer', str_repeat($char, $length)];
+        $this->writeSpacer(80);
     }
 
     /**

@@ -23,7 +23,7 @@ class Config
         'includeFiles' => ['*.php', '*.md'],
         'excludeFiles' => ['.git', '*ignore'],
         'excludePaths' => ['./docs', './cache'],
-        'verbosity'    => 'title|spacer|info|verbose|warning|error'
+        'verbosity'    => 'info|verbose|warning|error'
     ];
 
     /**
