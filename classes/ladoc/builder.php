@@ -107,20 +107,17 @@ class Builder
     }
 
     /**
-     * Build documentation.
+     * Scan the files tree.
      *
-     * @method build
-     * @chainable
+     * @protected
+     * @method scanFilesTree
+     * @throw  Error
      */
-    public function build()
+    protected function scanFilesTree()
     {
-        // Set start time.
-        $this->startTime = time();
-
-        // Write build start message.
-        $date = date("Y-m-d", $this->startTime);
-        $time = date("H:i:s", $this->startTime);
-        $this->output->writeTitle('Build start at %s (%s)', [$time, $date]);
+        // Write scan start message.
+        $path = $this->config->get('inputPath');
+        $this->output->writeInfo('Scan: %s', [$path]);
 
         // Scan input directory.
         $this->filesTree->scan();
@@ -131,9 +128,12 @@ class Builder
         // If no files found.
         if (empty($includedFiles)) {
             // Write and throw an error message.
-            $path = $this->config->get('inputPath');
-            $this->output->writeAndThrowError('No files found in %s.', [$path]);
+            $this->output->writeAndThrowError('Done: No files found.');
         }
+
+        // Write scan done message.
+        $this->output->writeInfo('Done!');
+        $this->output->writeSpacer();
 
         // Write verbose messages.
         $this->output->writeTitle('Included files (%s)', count($includedFiles));
@@ -155,6 +155,26 @@ class Builder
             $this->output->writeVerbose(array_values($excludedDirectories));
             $this->output->writeSpacer();
         }
+    }
+
+    /**
+     * Build documentation.
+     *
+     * @method build
+     * @chainable
+     */
+    public function build()
+    {
+        // Set start time.
+        $this->startTime = time();
+
+        // Write build start message.
+        $date = date("Y-m-d", $this->startTime);
+        $time = date("H:i:s", $this->startTime);
+        $this->output->writeTitle('Start build at %s (%s)', [$time, $date]);
+
+        // Scan the files tree.
+        $this->scanFilesTree();
 
         // Set method chainable.
         return $this;
