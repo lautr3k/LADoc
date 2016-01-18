@@ -50,7 +50,7 @@ class LADoc
 
         // Write an header message in the output.
         $this->output->writeTitle('%s - %s', [self::$name, self::$description]);
-        $this->output->writeInfo('version: %s.', [self::$version]);
+        $this->output->writeInfo('version: %s', [self::$version]);
         $this->output->writeSpacer();
     }
 
