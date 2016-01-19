@@ -34,6 +34,106 @@ class Parser
     protected $docBlocks = null;
 
     /**
+     * Patterns collection.
+     *
+     * @static
+     * @protected
+     * @property patterns
+     * @type     array
+    */
+    static protected $patterns =
+    [
+        'text'   => '.+',
+        'string' => '[^ ]+',
+        'space'  => ' ',
+        'spaces' => ' +',
+    ];
+
+    /**
+     * Tags definitions.
+     *
+     * @static
+     * @protected
+     * @property tags
+     * @type     array
+    */
+    static protected $tags =
+    [
+        'author' => [
+            'pattern' => 'name:text ?spaces ?link:string'
+        ],
+        'bootstrap' => [
+            'pattern' => 'text:text'
+        ],
+        'class' => [
+            'pattern' => 'name:string'
+        ],
+        'constructor' => [
+            'pattern' => null
+        ],
+        'copyright' => [
+            'pattern' => 'text:text'
+        ],
+        'extends' => [
+            'pattern' => 'name:string'
+        ],
+        'license' => [
+            'pattern' => 'name:string ?text:text'
+        ],
+        'main' => [
+            'pattern' => null
+        ],
+        'method' => [
+            'pattern' => 'name:string'
+        ],
+        'namespace' => [
+            'pattern' => 'name:string'
+        ],
+        'param' => [
+            'pattern' => 'type:string spaces name:string ?text:text'
+        ],
+        'property' => [
+            'pattern' => 'name:string'
+        ],
+        'private' => [
+            'pattern' => null
+        ],
+        'protected' => [
+            'pattern' => null
+        ],
+        'public' => [
+            'pattern' => null
+        ],
+        'return' => [
+            'pattern' => 'type:string ?text:text'
+        ],
+        'source' => [
+            'pattern' => 'url:string ?text:text'
+        ],
+        'static' => [
+            'pattern' => null
+        ],
+        'throw' => [
+            'pattern' => 'type:string ?text:text'
+        ],
+        'type' => [
+            'pattern' => 'name:string'
+        ],
+        'version' => [
+            'pattern' => 'number:string ?text:text'
+        ]
+    ];
+
+    /**
+     * Compiled tags patterns indexed by tag name.
+     *
+     * @protected
+     * @property compiledTagsPatterns
+     * @type     array
+    */
+    protected $compiledTagsPatterns = [];
+
+    /**
      * Class constructor.
      *
      * @constructor
@@ -43,6 +143,77 @@ class Parser
     {
         // Set {@class \LADoc\Builder\Files\Tree files tree} instance.
         $this->filesTree = $filesTree;
+
+        // Compile tags regexp patterns.
+        array_walk(self::$tags, [$this, 'compileTagsPatterns'], $this->compiledTagsPatterns);
+
+        var_dump($this->compiledTagsPatterns);
+    }
+
+    /**
+     * Compile tags regexp patterns.
+     *
+     * @protected
+     * @method compileTagsPatterns
+     * @param  string $tag
+     * @return string
+     */
+    protected function compileTagsPatterns($tag, $name)
+    {
+        // If no pattern for this tag.
+        if ($tag['pattern'] === null) {
+            // Return null.
+            return null;
+        }
+
+        // Split pattern on spaces
+        $params = array_filter(explode(' ', $tag['pattern']));
+
+        // For each parameter
+        $params = array_map(function($param)
+        {
+            // Test if it is an optional parameter
+            $optional = $param[0] === '?';
+
+            // If it is an optional parameter
+            if ($optional)
+            {
+                // Remove optional parameter mark
+                $param = substr($param, 1);
+            }
+
+            // Split parameter on colons
+            $param = explode(':', $param);
+
+            // If not an named parameter
+            if (! isset($param[1]))
+            {
+                // Get the parameter value
+                $value = $param[0];
+
+                // Return the regexp in patterns list from the parameter value
+                return self::$patterns[$value] . ($optional ? '?' : '');
+            }
+
+            // Get the parameter name
+            $name = $param[0];
+
+            // Get the parameter value
+            $value = $param[1];
+
+            // Get the regexp in patterns list from the parameter value
+            $pattern = self::$patterns[$value];
+
+            // Compile the named part regexp
+            return "(?P<$name>$pattern)" . ($optional ? '?' : '');
+
+        }, $params);
+
+        // Concact all compiled parts
+        $pattern = implode('', $params);
+
+        // Make and return the final regexp
+        return $this->compiledTagsPatterns[$name] = "/$pattern(?P<_>.*)?/";
     }
 
     /**
