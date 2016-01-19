@@ -21,6 +21,9 @@ class Line
     // @protected @property string text
     protected $text = null;
 
+    // @protected @property integer indent
+    protected $indent = null;
+
     // @protected @property boolean inDocBlock
     protected $inDocBlock = null;
 
@@ -51,8 +54,25 @@ class Line
     }
 
     /**
+     * Get/Set line indentation number.
+     *
+     * @method setIndent
+     * @return integer
+     */
+    public function getIndent()
+    {
+        if ($this->indent === null) {
+            preg_match('/^ +/', $this->text, $matches);
+            $spaces = isset($matches[0]) ? $matches[0] : '';
+            $this->indent = round(strlen($spaces) / 4);
+        }
+        return $this->indent;
+    }
+
+    /**
      * Get, set and return the line type.
      *
+     * @method getType
      * @param  null|string [$type=null]
      * @return string|boolean
      */
@@ -68,7 +88,7 @@ class Line
         if (! $this->inDocBlock and ($this->text === '/**' or $this->text === '/*')) {
             // Set we are in a DocBlock.
             $this->inDocBlock  = true;
-            
+
             // Set to: docBlockStart.
             return $this->type = 'docBlockStart';
         }
@@ -82,7 +102,13 @@ class Line
         // If in DocBlock.
         if ($this->inDocBlock) {
             // Remove possible start comment char in text.
-            $this->text = trim(preg_replace('/^\*/', '', $this->text));
+            $this->text = preg_replace('/^\*/', '', $this->text);
+
+            // Get the indentation number.
+            $this->getIndent();
+
+            // Trim witespaces from text.
+            $this->text = trim($this->text);
 
             // Set to: singleLineComment.
             return $this->type = 'docBlockData';
@@ -91,7 +117,10 @@ class Line
         // If not in a DocBlock and single line comment found.
         if (strpos($this->text, '//') === 0) {
             // Remove start comment char in text.
-            $this->text = trim(substr($this->text, 2));
+            $this->text = substr($this->text, 2);
+
+            // Get the indentation number.
+            $this->getIndent();
 
             // Set to: singleLineComment.
             return $this->type = 'singleLineComment';
@@ -104,6 +133,7 @@ class Line
     /**
      * Test if the line is from type.
      *
+     * @method isType
      * @param  string $type
      * @return boolean
      */

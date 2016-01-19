@@ -95,7 +95,6 @@ class Parser
 
                 // Register the DocBlock.
                 $this->docBlocks[] = $this->docBlock;
-                var_dump($this->docBlock);
 
                 // Set we are not in a DocBlock.
                 $this->inDocBlock = false;
