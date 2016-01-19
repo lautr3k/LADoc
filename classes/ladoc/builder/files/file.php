@@ -48,6 +48,20 @@ class File
     protected $relativePath = null;
 
     /**
+     * @protected
+     * @property contents
+     * @type     string
+    */
+    protected $contents = null;
+
+    /**
+     * @protected
+     * @property lines
+     * @type     string
+    */
+    protected $lines = null;
+
+    /**
      * Class constructor.
      *
      * @constructor
@@ -193,5 +207,58 @@ class File
     public function pathMatch($patterns)
     {
         return $this->match('absolutePath', $patterns);
+    }
+
+    /**
+     * Get the normalized file contents.
+     *
+     * - CRLF normalization.
+     * - Trim witespaces.
+     * - Tabs to spaces.
+     *
+     * @method getFileContents
+     * @return string
+     */
+    public function getContents()
+    {
+        // If not alredy set.
+        if (! $this->contents) {
+            // Get the raw file content.
+            $this->contents = file_get_contents($this->absolutePath);
+
+            // Normalize CRLF to UNIX style.
+            $this->contents = str_replace("\r\n", "\n", $this->contents);
+
+            // Normalize TABS with four spaces.
+            $this->contents = str_replace("\t", "    ", $this->contents);
+
+            // Trim witespaces.
+            $this->contents = trim($this->contents);
+        }
+
+        // Return normalized content.
+        return $this->contents;
+    }
+
+    /**
+     * Return an array of lines indexed by line number.
+     *
+     * @method getLines
+     * @return array
+     */
+    public function getLines()
+    {
+        // If not alredy set.
+        if (! $this->lines) {
+            // Split contents on new line char.
+            $lines = explode("\n", $this->getContents());
+            // Create indexed collection.
+            array_walk($lines, function($line, $key, $this) {
+                $this->lines[$key + 1] = $line;
+            }, $this);
+        }
+
+        // Return lines collection.
+        return $this->lines;
     }
 }

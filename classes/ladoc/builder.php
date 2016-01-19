@@ -14,6 +14,7 @@ namespace LADoc;
 
 use \LADoc;
 use \LADoc\Builder\Files\Tree;
+use \LADoc\Builder\DocBlocks\Parser;
 
 /**
  * Documentation builder.
@@ -21,6 +22,7 @@ use \LADoc\Builder\Files\Tree;
  * @class Builder
  * @use   \LADoc
  * @use   Builder\Files\Tree
+ * @use   Builder\DocBlocks\Parser
  */
 class Builder
 {
@@ -41,6 +43,15 @@ class Builder
      * @type     Builder\Files\Tree
     */
     protected $filesTree = null;
+
+    /**
+     * DocBlocks parser instance.
+     *
+     * @protected
+     * @property docBlocksParser
+     * @type     Builder\DocBlocks\Parser
+    */
+    protected $docBlocksParser = null;
 
     /**
      * Output instance.
@@ -107,13 +118,13 @@ class Builder
     }
 
     /**
-     * Scan the files tree.
+     * Scan input directory looking for files to be parsed.
      *
      * @protected
-     * @method scanFilesTree
+     * @method scanInputDirectory
      * @throw  Error
      */
-    protected function scanFilesTree()
+    protected function scanInputDirectory()
     {
         // Write scan start message.
         $path = $this->config->get('inputPath');
@@ -143,6 +154,7 @@ class Builder
         $excludedFiles = $this->filesTree->getFiles('excludedFiles');
 
         if (! empty($excludedFiles)) {
+            // Excluded files.
             $this->output->writeTitle('Excluded files (%s)', count($excludedFiles));
             $this->output->writeVerbose(array_values($excludedFiles));
             $this->output->writeSpacer();
@@ -151,10 +163,31 @@ class Builder
         $excludedDirectories = $this->filesTree->getFiles('excludedDirectories');
 
         if (! empty($excludedDirectories)) {
+            // Excluded directories.
             $this->output->writeTitle('Excluded directories (%s)', count($excludedDirectories));
             $this->output->writeVerbose(array_values($excludedDirectories));
             $this->output->writeSpacer();
         }
+    }
+
+    /**
+     * Scan files tree looking for {@class DocBlocks doc blocks}.
+     *
+     * @protected
+     * @method scanFilesTree
+     * @throw  Error
+     */
+    protected function scanFilesTree()
+    {
+        // Write scan start message.
+        $this->output->writeTitle('Exctract DocBlocks');
+        $this->output->writeInfo('Scan...');
+
+        // Create {@class Builder\Parser parser} instance.
+        $this->docBlocksParser = new Parser($this->filesTree);
+
+        // Parse the files tree.
+        $this->docBlocksParser->parse();
     }
 
     /**
@@ -173,7 +206,10 @@ class Builder
         $time = date("H:i:s", $this->startTime);
         $this->output->writeTitle('Start build at %s (%s)', [$time, $date]);
 
-        // Scan the files tree.
+        // Scan input directory looking for files to be parsed.
+        $this->scanInputDirectory();
+
+        // Scan files tree looking for {@class DocBlocks doc blocks}.
         $this->scanFilesTree();
 
         // Set method chainable.

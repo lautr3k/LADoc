@@ -43,7 +43,7 @@ class Tree
      * Class constructor.
      *
      * @constructor
-     * @param \LADoc\Config $this->config
+     * @param \LADoc\Config $config
      */
     public function __construct(Config $config)
     {
